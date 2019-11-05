@@ -7,8 +7,7 @@
     "test": "jest",
     "build": "tsc",
     "lint": "tslint --project tsconfig.json",
-    "start:dev": "dotenv -e ../.env -- nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/main.ts",
-    "postinstall": "npm run build"
+    "start:dev": "dotenv -e ../.env -- nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/main.ts"
   },
   "publishConfig": {
     "access": "public"
