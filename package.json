@@ -1,5 +1,5 @@
 {
-  "name": "event-bus",
+  "name": "@libero/event-bus",
   "version": "0.1.0",
   "description": "",
   "main": "dist/index.js",
@@ -15,14 +15,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/libero/reviewer"
+    "url": "https://github.com/libero/event-bus"
   },
   "husky": {
     "hooks": {
       "pre-commit": "yarn lint"
     }
   },
-  "author": "Peter East",
+  "author": "libero-npm@elifesciences.org",
   "license": "MIT",
   "dependencies": {
     "@types/amqplib": "^0.5.13",
