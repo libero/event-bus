@@ -1,0 +1,9 @@
+language: node_js
+node_js:
+- 10.16.3
+deploy:
+  provider: npm
+  email: libero-npm@elifesciences.org
+  api_key: change me
+  on:
+    tags: true
