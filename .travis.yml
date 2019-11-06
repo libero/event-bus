@@ -8,7 +8,9 @@ jobs:
       name: Test
       node_js:
         - 10.16.3
-      script: yarn test
+      script:
+        - yarn lint
+        - yarn test
 
     - stage: deploy
       if:

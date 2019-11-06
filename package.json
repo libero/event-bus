@@ -1,6 +1,6 @@
 {
   "name": "@libero/event-bus",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -18,7 +18,8 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "yarn lint"
+      "pre-commit": "yarn lint",
+      "pre-push": "yarn test"
     }
   },
   "author": "libero-npm@elifesciences.org",
