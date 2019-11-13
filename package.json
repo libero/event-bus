@@ -6,8 +6,7 @@
   "scripts": {
     "test": "jest",
     "build": "tsc",
-    "lint": "tslint --project tsconfig.json",
-    "start:dev": "dotenv -e ../.env -- nodemon --watch 'src/**/*.ts' --ignore 'src/**/*.spec.ts' --exec 'ts-node' src/main.ts"
+    "lint": "tslint --project tsconfig.json"
   },
   "publishConfig": {
     "access": "public"
@@ -41,7 +40,6 @@
     "flush-promises": "^1.0.2",
     "husky": "^3.0.9",
     "jest": "^24.9.0",
-    "nodemon": "^1.19.1",
     "pino-pretty": "^3.2.1",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.4.1",
