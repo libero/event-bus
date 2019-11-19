@@ -8,357 +8,343 @@ jest.mock('../logger');
 jest.mock('./amqp-connector');
 
 describe('AMQP Connection Manager', () => {
-  describe('behaviour in a good connection state', () => {
-    it('forwards messages to a connector', async () => {
-      const publishMock = jest.fn(async () => true);
+    describe('behaviour in a good connection state', () => {
+        it('forwards messages to a connector', async () => {
+            const publishMock = jest.fn(async () => true);
 
-      // (...as any) needed because jest is magic
-      // tslint:disable-next-line: no-any
-      (AMQPConnector as any).mockImplementation(
-        (__, [send, _]: Channel<StateChange>) => {
-          send({
-            newState: 'CONNECTED',
-          });
-          return {
-            publish: publishMock,
-            subscribe: jest.fn(),
-          };
-        },
-      );
-      const manager = await new RabbitEventBus({ url: '' }).init([], '');
-      await manager.publish({
-        eventType: 'test',
-        id: 'something',
-        created: new Date(),
-        payload: {},
-      });
-
-      expect(publishMock).toBeCalled();
-    });
-
-    it('passes on subscribes to the connector immediately, while it\'s ready', async () => {
-      const subscribeMock = jest.fn();
-      const [readyNotify, readyWait] = channel<{}>();
-      // (...as any) needed because jest is magic
-      // tslint:disable-next-line: no-any
-      (AMQPConnector as any).mockImplementation(
-        (__, [send, _]: Channel<StateChange>) => {
-          send({
-            newState: 'CONNECTED',
-          });
-
-          readyNotify({});
-          return {
-            publish: jest.fn(),
-            subscribe: subscribeMock,
-          };
-        },
-      );
-
-      const manager = await new RabbitEventBus({ url: '' }).init([], '');
-
-      await manager.subscribe('test', jest.fn());
-
-      await readyWait();
-      expect(subscribeMock).toBeCalled();
-    });
-
-    it('it resolves publishes once they\'ve actually been published', async done => {
-      const publishMock = jest.fn();
-
-      // This channel is used to simulate startup delay in the connector
-      const [readyNotify, readyWait] = channel<{}>();
-
-      // (...as any) needed because jest is magic
-      // tslint:disable-next-line: no-any
-      (AMQPConnector as any).mockImplementation(
-        (___, [send, _]: Channel<StateChange>, __, subscriptions) => {
-          send({
-            newState: 'CONNECTED',
-          });
-          readyWait().then(() => {
-            send({
-              newState: 'NOT_CONNECTED',
+            // (...as any) needed because jest is magic
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+            (AMQPConnector as any).mockImplementation((__, [send, _]: Channel<StateChange>) => {
+                send({
+                    newState: 'CONNECTED',
+                });
+                return {
+                    publish: publishMock,
+                    subscribe: jest.fn(),
+                };
             });
-          });
-          return {
-            subscriptions,
-            publish: publishMock,
-            subscribe: jest.fn(),
-          };
-        },
-      );
-
-      const manager = await new RabbitEventBus({ url: '' }).init([], '');
-
-      Promise.all([
-        manager.publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        }),
-        manager.publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        }),
-        manager.publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        }),
-      ]);
-
-      expect(publishMock).toBeCalledTimes(0);
-
-      // simulate some startup delay in the connector
-      setTimeout(() => {
-        readyNotify({});
-        // Expect the connector to be created with subscriptions
-        expect(publishMock).toBeCalledTimes(3);
-        done();
-      }, 50);
-    });
-
-    it('passes on subscribes that are registered after the connector is ready', async done => {
-      const subscribeMock = jest.fn();
-      const connectMock = jest.fn();
-
-      // This channel is used to simulate startup delay in the connector
-      const [readyNotify, readyWait] = channel<{}>();
-
-      // (...as any) needed because jest is magic
-      // tslint:disable-next-line: no-any
-      (AMQPConnector as any).mockImplementation(
-        (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-          send({
-            newState: 'CONNECTED',
-          });
-          readyWait().then(() => {
-            send({
-              newState: 'NOT_CONNECTED',
+            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            await manager.publish({
+                eventType: 'test',
+                id: 'something',
+                created: new Date(),
+                payload: {},
             });
-          });
-          return {
-            subscriptions,
-            connect: connectMock,
-            publish: jest.fn(),
-            subscribe: subscribeMock,
-          };
-        },
-      );
 
-      const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            expect(publishMock).toBeCalled();
+        });
 
-      await manager.subscribe('test', jest.fn());
-      await manager.subscribe('test', jest.fn());
-      await manager.subscribe('test', jest.fn());
+        it("passes on subscribes to the connector immediately, while it's ready", async () => {
+            const subscribeMock = jest.fn();
+            const [readyNotify, readyWait] = channel<{}>();
+            // (...as any) needed because jest is magic
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+            (AMQPConnector as any).mockImplementation((__, [send, _]: Channel<StateChange>) => {
+                send({
+                    newState: 'CONNECTED',
+                });
 
-      // tslint:disable-next-line: no-any
-      expect((manager as any).subscriptions.length).toEqual(3);
-      expect(subscribeMock).toBeCalledTimes(3);
+                readyNotify({});
+                return {
+                    publish: jest.fn(),
+                    subscribe: subscribeMock,
+                };
+            });
 
-      // simulate some startup delay in the connector
-      setTimeout(() => {
-        readyNotify({});
-        // Expect the connector to be created with subscriptions
-        // tslint:disable-next-line: no-any
-        expect((manager as any).connector.get().subscriptions.length).toEqual(3);
-        done();
-      }, 50);
-    });
-  });
+            const manager = await new RabbitEventBus({ url: '' }).init([], '');
 
-  describe('degraded state', () => {
-    it('publish promises are not resolved after a failed connection', async done => {
-      const subscribeMock = jest.fn();
-      const connectMock = jest.fn();
+            await manager.subscribe('test', jest.fn());
 
-      // tslint:disable-next-line: no-any
-      (AMQPConnector as any).mockImplementation(
-        (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-          send({
-            newState: 'NOT_CONNECTED',
-          });
+            await readyWait();
+            expect(subscribeMock).toBeCalled();
+        });
 
-          return {
-            subscriptions,
-            connect: connectMock,
-            publish: jest.fn(() => false),
-            subscribe: subscribeMock,
-          };
-        },
-      );
+        it("it resolves publishes once they've actually been published", async done => {
+            const publishMock = jest.fn();
 
-      const manager = await new RabbitEventBus({ url: '' }).init([], '');
-      const then = jest.fn();
+            // This channel is used to simulate startup delay in the connector
+            const [readyNotify, readyWait] = channel<{}>();
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            // (...as any) needed because jest is magic
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+            (AMQPConnector as any).mockImplementation((___, [send, _]: Channel<StateChange>, __, subscriptions) => {
+                send({
+                    newState: 'CONNECTED',
+                });
+                readyWait().then(() => {
+                    send({
+                        newState: 'NOT_CONNECTED',
+                    });
+                });
+                return {
+                    subscriptions,
+                    publish: publishMock,
+                    subscribe: jest.fn(),
+                };
+            });
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            const manager = await new RabbitEventBus({ url: '' }).init([], '');
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            Promise.all([
+                manager.publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                }),
+                manager.publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                }),
+                manager.publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                }),
+            ]);
 
-      setTimeout(() => {
-        expect(then).toHaveBeenCalledTimes(0);
-        done();
-      }, 250);
-    });
+            expect(publishMock).toBeCalledTimes(0);
 
-    it('publish promises are resolved after a successful connection', async done => {
-      const subscribeMock = jest.fn();
+            // simulate some startup delay in the connector
+            setTimeout(() => {
+                readyNotify({});
+                // Expect the connector to be created with subscriptions
+                expect(publishMock).toBeCalledTimes(3);
+                done();
+            }, 50);
+        });
 
-      // tslint:disable-next-line: no-any
-      (AMQPConnector as any).mockImplementation(
-        (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-          send({
-            newState: 'CONNECTED',
-          });
+        it('passes on subscribes that are registered after the connector is ready', async done => {
+            const subscribeMock = jest.fn();
+            const connectMock = jest.fn();
 
-          return {
-            subscriptions,
-            publish: jest.fn(() => true),
-            subscribe: subscribeMock,
-          };
-        },
-      );
+            // This channel is used to simulate startup delay in the connector
+            const [readyNotify, readyWait] = channel<{}>();
 
-      const manager = await new RabbitEventBus({ url: '' }).init([], '');
-      const then = jest.fn();
+            // (...as any) needed because jest is magic
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+            (AMQPConnector as any).mockImplementation((_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
+                send({
+                    newState: 'CONNECTED',
+                });
+                readyWait().then(() => {
+                    send({
+                        newState: 'NOT_CONNECTED',
+                    });
+                });
+                return {
+                    subscriptions,
+                    connect: connectMock,
+                    publish: jest.fn(),
+                    subscribe: subscribeMock,
+                };
+            });
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            const manager = await new RabbitEventBus({ url: '' }).init([], '');
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            await manager.subscribe('test', jest.fn());
+            await manager.subscribe('test', jest.fn());
+            await manager.subscribe('test', jest.fn());
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            expect((manager as any).subscriptions.length).toEqual(3);
+            expect(subscribeMock).toBeCalledTimes(3);
 
-      setTimeout(() => {
-        expect(then).toHaveBeenCalledTimes(3);
-        done();
-      }, 250);
+            // simulate some startup delay in the connector
+            setTimeout(() => {
+                readyNotify({});
+                // Expect the connector to be created with subscriptions
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                expect((manager as any).connector.get().subscriptions.length).toEqual(3);
+                done();
+            }, 50);
+        });
     });
 
-    it('publish promises are published after a failed connection', async () => {
-      const subscribeMock = jest.fn();
-      const connectMock = jest.fn();
-      let returnState: ConnectedState = 'NOT_CONNECTED';
-      let returnPublish: boolean = false;
+    describe('degraded state', () => {
+        it('publish promises are not resolved after a failed connection', async done => {
+            const subscribeMock = jest.fn();
+            const connectMock = jest.fn();
 
-      // tslint:disable-next-line: no-any
-      (AMQPConnector as any).mockImplementation(
-        (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-          send({
-            newState: returnState,
-          });
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+            (AMQPConnector as any).mockImplementation((_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
+                send({
+                    newState: 'NOT_CONNECTED',
+                });
 
-          return {
-            subscriptions,
-            connect: connectMock,
-            publish: jest.fn(() => returnPublish),
-            subscribe: subscribeMock,
-          };
-        },
-      );
+                return {
+                    subscriptions,
+                    connect: connectMock,
+                    publish: jest.fn(() => false),
+                    subscribe: subscribeMock,
+                };
+            });
 
-      const manager = await new RabbitEventBus({ url: '' }).init([], '');
-      const then = jest.fn();
+            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const then = jest.fn();
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
 
-      manager
-        .publish({
-          eventType: 'test',
-          id: 'something',
-          created: new Date(),
-          payload: {},
-        })
-        .then(then);
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
 
-      const checkNothingPublished = () => {
-        return new Promise(resolve =>
-          setTimeout(() => {
-            expect(then).toHaveBeenCalledTimes(0);
+            setTimeout(() => {
+                expect(then).toHaveBeenCalledTimes(0);
+                done();
+            }, 250);
+        });
 
-            // 'reconnect' the connection
-            returnPublish = true;
-            returnState = 'CONNECTED';
-            resolve();
-          }, 250),
-        );
-      };
+        it('publish promises are resolved after a successful connection', async done => {
+            const subscribeMock = jest.fn();
 
-      // We need to wait for at least 250ms to ensure that nothing has been
-      // inadvertently published.
-      await checkNothingPublished();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+            (AMQPConnector as any).mockImplementation((_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
+                send({
+                    newState: 'CONNECTED',
+                });
 
-      // This check will succeeded as quickly as possible.
-      await waitForExpect(() => {
-        expect(then).toHaveBeenCalledTimes(3);
-      });
+                return {
+                    subscriptions,
+                    publish: jest.fn(() => true),
+                    subscribe: subscribeMock,
+                };
+            });
+
+            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const then = jest.fn();
+
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
+
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
+
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
+
+            setTimeout(() => {
+                expect(then).toHaveBeenCalledTimes(3);
+                done();
+            }, 250);
+        });
+
+        it('publish promises are published after a failed connection', async () => {
+            const subscribeMock = jest.fn();
+            const connectMock = jest.fn();
+            let returnState: ConnectedState = 'NOT_CONNECTED';
+            let returnPublish = false;
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
+            (AMQPConnector as any).mockImplementation((_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
+                send({
+                    newState: returnState,
+                });
+
+                return {
+                    subscriptions,
+                    connect: connectMock,
+                    publish: jest.fn(() => returnPublish),
+                    subscribe: subscribeMock,
+                };
+            });
+
+            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const then = jest.fn();
+
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
+
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
+
+            manager
+                .publish({
+                    eventType: 'test',
+                    id: 'something',
+                    created: new Date(),
+                    payload: {},
+                })
+                .then(then);
+
+            const checkNothingPublished = (): Promise<NodeJS.Timeout> => {
+                return new Promise(resolve =>
+                    setTimeout(() => {
+                        expect(then).toHaveBeenCalledTimes(0);
+
+                        // 'reconnect' the connection
+                        returnPublish = true;
+                        returnState = 'CONNECTED';
+                        resolve();
+                    }, 250),
+                );
+            };
+
+            // We need to wait for at least 250ms to ensure that nothing has been
+            // inadvertently published.
+            await checkNothingPublished();
+
+            // This check will succeeded as quickly as possible.
+            await waitForExpect(() => {
+                expect(then).toHaveBeenCalledTimes(3);
+            });
+        });
     });
-  });
 
-  // Tests that it queues up messages that it can't send and that resends then when it can
-  // If a message fails to send it will retry it
+    // Tests that it queues up messages that it can't send and that resends then when it can
+    // If a message fails to send it will retry it
 });
