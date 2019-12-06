@@ -7,7 +7,6 @@
     "test": "jest",
     "build": "tsc",
     "prettier": "prettier --write 'src/**/*ts'",
-
     "lint": "eslint --ext .js,.ts src/"
   },
   "publishConfig": {
@@ -28,7 +27,7 @@
   "dependencies": {
     "@types/amqplib": "^0.5.13",
     "@types/jest": "^24.0.18",
-    "@types/pino": "^5.8.10",
+    "@types/pino": "^5.14.0",
     "@types/uuid": "^3.4.5",
     "amqplib": "^0.5.5",
     "funfix": "^7.0.1",

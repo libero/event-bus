@@ -7,7 +7,7 @@ export interface StateChange {
     message?: string; // Make this some type
 }
 
-export interface MessageWrapper<T> {
+export interface Message<T> {
     event: T;
     meta: {
         attempts: number;

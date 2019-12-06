@@ -4,7 +4,7 @@ import { Connection, Message } from 'amqplib';
 import * as amqplib from 'amqplib';
 import { InfraLogger as logger } from '../logger';
 import { Event } from '../event-bus';
-import { Subscription, StateChange, MessageWrapper } from './types';
+import { Subscription, StateChange, Message as EventBusMessage } from './types';
 import { EventUtils } from './event-utils';
 
 export default class AMQPConnector {
@@ -96,9 +96,9 @@ export default class AMQPConnector {
                             EventUtils.eventTypeToQueue(eventType, this.serviceName),
                             async (msg: Message) => {
                                 try {
-                                    const message: MessageWrapper<Event<P>> = JSON.parse(msg.content.toString());
+                                    const message: EventBusMessage<Event<P>> = JSON.parse(msg.content.toString());
 
-                                    handler(EventUtils.messageToEvent(message).get()).then(isOk => {
+                                    handler(message.event).then(isOk => {
                                         if (isOk) {
                                             // Ack
                                             rabbitChannel.ack(msg);

@@ -1,6 +1,5 @@
 import { Event } from '../event-bus';
-import { MessageWrapper } from './types';
-import { Option } from 'funfix';
+import { Message } from './types';
 
 export class EventUtils {
     // Maybe merge this class with AMQPConnector
@@ -12,7 +11,7 @@ export class EventUtils {
         return `consumer__${eventType}__${serviceName}`;
     }
 
-    public static eventToMessage<T extends object>(event: Event<T>): MessageWrapper<Event<T>> {
+    public static eventToMessage<T extends object>(event: Event<T>): Message<Event<T>> {
         // Wrap the event in some internal transport layer format, in effect transforming the
         // event into a message
         return {
@@ -23,9 +22,5 @@ export class EventUtils {
                 failures: 0, // increments each failure
             },
         };
-    }
-
-    public static messageToEvent<T extends object>(message: MessageWrapper<Event<T>>): Option<Event<T>> {
-        return Option.of(message.event);
     }
 }
