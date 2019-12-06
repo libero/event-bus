@@ -1,5 +1,8 @@
 # `event-bus`
 
+TODO: update README to explain what this repo impliments (generic interface def and specific RabbitMq / Mock implimentation)
+
+
 > This will provide common types and implementation for connecting to our glorious message bus
 
 ## RabbitMQ Implementation 
