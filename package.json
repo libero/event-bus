@@ -6,6 +6,8 @@
   "scripts": {
     "test": "jest",
     "build": "tsc",
+    "prettier": "prettier --write 'src/**/*ts'",
+
     "lint": "eslint --ext .js,.ts src/"
   },
   "publishConfig": {

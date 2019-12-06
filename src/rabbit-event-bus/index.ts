@@ -6,6 +6,7 @@ import { InternalMessageQueue, QueuedEvent } from './internal-queue';
 import { debounce } from 'lodash';
 import { ConnectionObserver, ConnectionOwner } from './connection-observer';
 
+// This is the same as EventConfig ?
 export interface RabbitEventBusConnectionOptions {
     url: string;
 }
@@ -31,6 +32,7 @@ export default class RabbitEventBus implements EventBus, ConnectionOwner {
         this.url = connectionOpts.url;
     }
 
+    // Can the params here be moved to the constructor?
     public async init(eventDefinitions: string[], serviceName: string): Promise<this> {
         this.eventDefinitions = eventDefinitions;
         this.serviceName = serviceName;
