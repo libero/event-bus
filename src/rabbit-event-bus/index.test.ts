@@ -11,10 +11,8 @@ describe('AMQP Connection Manager', () => {
     describe('behaviour in a good connection state', () => {
         it('forwards messages to a connector', async () => {
             const publishMock = jest.fn(async () => true);
-
-            // (...as any) needed because jest is magic
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-            (AMQPConnector as any).mockImplementation((__, [send, _]: Channel<StateChange>) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            (AMQPConnector as jest.Mock).mockImplementation((__, [send, _]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -37,9 +35,8 @@ describe('AMQP Connection Manager', () => {
         it("passes on subscribes to the connector immediately, while it's ready", async () => {
             const subscribeMock = jest.fn();
             const [readyNotify, readyWait] = channel<{}>();
-            // (...as any) needed because jest is magic
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-            (AMQPConnector as any).mockImplementation((__, [send, _]: Channel<StateChange>) => {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            (AMQPConnector as jest.Mock).mockImplementation((__, [send, _]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -65,23 +62,24 @@ describe('AMQP Connection Manager', () => {
             // This channel is used to simulate startup delay in the connector
             const [readyNotify, readyWait] = channel<{}>();
 
-            // (...as any) needed because jest is magic
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-            (AMQPConnector as any).mockImplementation((___, [send, _]: Channel<StateChange>, __, subscriptions) => {
-                send({
-                    newState: 'CONNECTED',
-                });
-                readyWait().then(() => {
+            (AMQPConnector as jest.Mock).mockImplementation(
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                (___, [send, _]: Channel<StateChange>, __, subscriptions) => {
                     send({
-                        newState: 'NOT_CONNECTED',
+                        newState: 'CONNECTED',
                     });
-                });
-                return {
-                    subscriptions,
-                    publish: publishMock,
-                    subscribe: jest.fn(),
-                };
-            });
+                    readyWait().then(() => {
+                        send({
+                            newState: 'NOT_CONNECTED',
+                        });
+                    });
+                    return {
+                        subscriptions,
+                        publish: publishMock,
+                        subscribe: jest.fn(),
+                    };
+                },
+            );
 
             const manager = await new RabbitEventBus({ url: '' }).init([], '');
 
@@ -124,24 +122,25 @@ describe('AMQP Connection Manager', () => {
             // This channel is used to simulate startup delay in the connector
             const [readyNotify, readyWait] = channel<{}>();
 
-            // (...as any) needed because jest is magic
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-            (AMQPConnector as any).mockImplementation((_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-                send({
-                    newState: 'CONNECTED',
-                });
-                readyWait().then(() => {
+            (AMQPConnector as jest.Mock).mockImplementation(
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
                     send({
-                        newState: 'NOT_CONNECTED',
+                        newState: 'CONNECTED',
                     });
-                });
-                return {
-                    subscriptions,
-                    connect: connectMock,
-                    publish: jest.fn(),
-                    subscribe: subscribeMock,
-                };
-            });
+                    readyWait().then(() => {
+                        send({
+                            newState: 'NOT_CONNECTED',
+                        });
+                    });
+                    return {
+                        subscriptions,
+                        connect: connectMock,
+                        publish: jest.fn(),
+                        subscribe: subscribeMock,
+                    };
+                },
+            );
 
             const manager = await new RabbitEventBus({ url: '' }).init([], '');
 
@@ -169,19 +168,21 @@ describe('AMQP Connection Manager', () => {
             const subscribeMock = jest.fn();
             const connectMock = jest.fn();
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-            (AMQPConnector as any).mockImplementation((_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-                send({
-                    newState: 'NOT_CONNECTED',
-                });
+            (AMQPConnector as jest.Mock).mockImplementation(
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
+                    send({
+                        newState: 'NOT_CONNECTED',
+                    });
 
-                return {
-                    subscriptions,
-                    connect: connectMock,
-                    publish: jest.fn(() => false),
-                    subscribe: subscribeMock,
-                };
-            });
+                    return {
+                        subscriptions,
+                        connect: connectMock,
+                        publish: jest.fn(() => false),
+                        subscribe: subscribeMock,
+                    };
+                },
+            );
 
             const manager = await new RabbitEventBus({ url: '' }).init([], '');
             const then = jest.fn();
@@ -222,18 +223,20 @@ describe('AMQP Connection Manager', () => {
         it('publish promises are resolved after a successful connection', async done => {
             const subscribeMock = jest.fn();
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-            (AMQPConnector as any).mockImplementation((_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-                send({
-                    newState: 'CONNECTED',
-                });
+            (AMQPConnector as jest.Mock).mockImplementation(
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
+                    send({
+                        newState: 'CONNECTED',
+                    });
 
-                return {
-                    subscriptions,
-                    publish: jest.fn(() => true),
-                    subscribe: subscribeMock,
-                };
-            });
+                    return {
+                        subscriptions,
+                        publish: jest.fn(() => true),
+                        subscribe: subscribeMock,
+                    };
+                },
+            );
 
             const manager = await new RabbitEventBus({ url: '' }).init([], '');
             const then = jest.fn();
@@ -277,19 +280,21 @@ describe('AMQP Connection Manager', () => {
             let returnState: ConnectedState = 'NOT_CONNECTED';
             let returnPublish = false;
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars
-            (AMQPConnector as any).mockImplementation((_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-                send({
-                    newState: returnState,
-                });
+            (AMQPConnector as jest.Mock).mockImplementation(
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
+                    send({
+                        newState: returnState,
+                    });
 
-                return {
-                    subscriptions,
-                    connect: connectMock,
-                    publish: jest.fn(() => returnPublish),
-                    subscribe: subscribeMock,
-                };
-            });
+                    return {
+                        subscriptions,
+                        connect: connectMock,
+                        publish: jest.fn(() => returnPublish),
+                        subscribe: subscribeMock,
+                    };
+                },
+            );
 
             const manager = await new RabbitEventBus({ url: '' }).init([], '');
             const then = jest.fn();
