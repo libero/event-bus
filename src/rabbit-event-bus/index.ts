@@ -42,6 +42,12 @@ export default class RabbitEventBus implements EventBus, ConnectionOwner {
         return this;
     }
 
+    public async destroy(): Promise<void> {
+        if (this.connector) {
+            this.connector.get().destroy();
+        }
+    }
+
     public onConnect(): void {
         this.queue.publishQueue();
     }
@@ -56,8 +62,6 @@ export default class RabbitEventBus implements EventBus, ConnectionOwner {
     }
 
     private connect(): void {
-        // logger.debug('attemptingConnection');
-        // Should I debounce this?
         this.connector = Some(
             new AMQPConnector(
                 this.url,

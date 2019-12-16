@@ -14,6 +14,7 @@ export default class AMQPConnector {
     private serviceName = 'unknown-service';
     private subscriptions: Array<Subscription<object>>;
     private connection: Connection;
+    private destroyed = false;
 
     public constructor(
         url: string,
@@ -66,6 +67,14 @@ export default class AMQPConnector {
             return connection;
         } catch (e) {
             throw new Error('Connection failed');
+        }
+    }
+
+    public async destroy(): Promise<void> {
+        this.destroyed = true;
+
+        if (this.connection) {
+            return this.connection.close();
         }
     }
 
@@ -153,7 +162,9 @@ export default class AMQPConnector {
     }
 
     private disconnected(): void {
-        this.externalConnector.send({ newState: 'NOT_CONNECTED' });
+        if (!this.destroyed) {
+            this.externalConnector.send({ newState: 'NOT_CONNECTED' });
+        }
     }
 
     private connected(): void {
