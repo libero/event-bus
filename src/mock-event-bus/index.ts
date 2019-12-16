@@ -60,4 +60,8 @@ export class MockEventBus implements EventBus {
     ): Promise<void> {
         this.queues.get().set(`${eventType}`, handler);
     }
+
+    public async destroy(): Promise<void> {
+        return Promise.resolve();
+    }
 }

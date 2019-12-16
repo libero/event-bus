@@ -17,6 +17,7 @@ describe('AMQP connector', () => {
         (({
             createChannel: mockChannel ? (): void => mockChannel : jest.fn(),
             on: jest.fn(),
+            close: jest.fn(),
         } as unknown) as Connection);
 
     const makeChannel = (options: { [key: string]: Function } = {}): Record<string, jest.Mock> => ({
@@ -92,6 +93,25 @@ describe('AMQP connector', () => {
             );
             expect(mockChannel.consume).toHaveBeenCalledTimes(1);
             expect(mockChannel.consume.mock.calls[0][0]).toBe('consumer__test:event__service');
+        });
+    });
+
+    describe('destroy', () => {
+        it('should close the connection and not reconnect', async () => {
+            const mockConnection = makeConnection();
+            (connect as jest.Mock).mockImplementation(async (): Promise<Connection> => mockConnection);
+
+            const sender = jest.fn();
+            const receiver = async (): Promise<StateChange> => ({} as StateChange);
+            const connector = new AMQPConnector(url, [sender, receiver], [], [], 'service');
+
+            await flushPromises();
+            connector.destroy();
+            await flushPromises();
+
+            expect(mockConnection.close).toHaveBeenCalledTimes(1);
+            expect(sender).toHaveBeenCalledTimes(1);
+            expect(sender.mock.calls[0][0]).toStrictEqual({ newState: 'CONNECTED' });
         });
     });
 

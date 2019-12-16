@@ -26,6 +26,8 @@ export interface EventSubscriber {
 export interface EventBus extends EventPublisher, EventSubscriber {
     // This needs to be documented better / commented better. What are eventDefinitions? how is a serviceName going to be used?
     init(eventDefinitions: string[], serviceName: string): Promise<this>;
+
+    destroy(): Promise<void>;
 }
 // This isn't generic enough
 export interface EventConfig {

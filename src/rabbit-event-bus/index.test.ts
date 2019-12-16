@@ -8,6 +8,19 @@ jest.mock('../logger');
 jest.mock('./amqp-connector');
 
 describe('AMQP Connection Manager', () => {
+    describe('destory', () => {
+        it('calls connector destroy method', async () => {
+            const destroyMock = jest.fn();
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            (AMQPConnector as jest.Mock).mockImplementation(() => ({ destroy: destroyMock }));
+            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+
+            await manager.destroy();
+
+            expect(destroyMock).toHaveBeenCalledTimes(1);
+        });
+    });
+
     describe('behaviour in a good connection state', () => {
         it('forwards messages to a connector', async () => {
             const publishMock = jest.fn(async () => true);
