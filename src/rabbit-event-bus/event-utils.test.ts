@@ -6,14 +6,16 @@ describe('EventUtils', () => {
     describe('eventTypeToExchange', (): void => {
         it('correctly names an event exchange', () => {
             const exampleDefinition = 'SampleEvent';
-            expect(EventUtils.eventTypeToExchange(exampleDefinition)).toEqual('event__SampleEvent');
+            expect(EventUtils.makeEventExchangeName(exampleDefinition)).toEqual('event__SampleEvent');
         });
     });
     describe('eventTypeToQueue', () => {
         it('correctly names an event queue', () => {
             const eventType = 'SampleEventType';
             const service = 'SampleService';
-            expect(EventUtils.eventTypeToQueue(eventType, service)).toEqual('consumer__SampleEventType__SampleService');
+            expect(EventUtils.makeConsumerQueueName(eventType, service)).toEqual(
+                'consumer__SampleEventType__SampleService',
+            );
         });
     });
     describe('eventToMessage', () => {
