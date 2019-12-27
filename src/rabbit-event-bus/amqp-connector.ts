@@ -3,7 +3,7 @@ import { Option } from 'funfix';
 import { Connection, Message } from 'amqplib';
 import * as amqplib from 'amqplib';
 import { InfraLogger as logger } from '../logger';
-import { Event } from '../event-bus';
+import { Event, EventType } from '../event-bus';
 import { Subscription, StateChange, Message as EventBusMessage } from './types';
 import { EventUtils } from './event-utils';
 
@@ -12,9 +12,9 @@ export default class AMQPConnector {
         send: Sender<StateChange>;
     };
     private serviceName = 'unknown-service';
-    private subscriptions: Array<Subscription<object>>;
     private connection: Connection;
     private destroyed = false;
+    private subscriptions: EventType[] = [];
 
     public constructor(
         url: string,
@@ -24,7 +24,6 @@ export default class AMQPConnector {
         serviceName: string,
     ) {
         this.externalConnector = { send: sender };
-        this.subscriptions = subscriptions;
         this.serviceName = serviceName;
 
         // Set up the connections to the AMQP server
@@ -34,6 +33,8 @@ export default class AMQPConnector {
                 // Setup the exchanges
 
                 const rabbitChannel = await this.connection.createChannel();
+                this.subscriptions = [];
+
                 await Promise.all(
                     eventDefs.map(async (eventType: string) =>
                         rabbitChannel.assertExchange(EventUtils.eventTypeToExchange(eventType), 'fanout'),
@@ -45,7 +46,7 @@ export default class AMQPConnector {
                     });
 
                 // Create subscribers here
-                this.subscriptions.forEach(async subscription => {
+                subscriptions.forEach(async subscription => {
                     // subscribe
                     await this.subscribe(subscription.eventType, subscription.handler);
                 });
@@ -79,7 +80,7 @@ export default class AMQPConnector {
     }
 
     public async subscribe<P extends object>(
-        eventType: string,
+        eventType: EventType,
         handler: (ev: Event<P>) => Promise<boolean>,
     ): Promise<void> {
         // For the event identifier:
@@ -100,6 +101,7 @@ export default class AMQPConnector {
                             '',
                         );
                         logger.trace('subscribe');
+                        this.subscriptions.push(eventType);
 
                         await rabbitChannel.consume(
                             EventUtils.eventTypeToQueue(eventType, this.serviceName),
@@ -159,6 +161,10 @@ export default class AMQPConnector {
                 }
             })
             .getOrElse(false);
+    }
+
+    public get subscribedEvents(): EventType[] {
+        return this.subscriptions;
     }
 
     private disconnected(): void {

@@ -20,7 +20,7 @@ describe('mock message queue', () => {
             const eventType = 'libero:mock:test';
 
             const mockHandler = jest.fn(async () => true);
-            const mockEventBus = await new MockEventBus().init([eventType], 'message-bus-test');
+            const mockEventBus = await new MockEventBus().register([eventType], 'message-bus-test');
 
             mockEventBus.subscribe<MockEvent1>(eventType, mockHandler);
 
@@ -73,7 +73,7 @@ describe('mock message queue', () => {
                 return Promise.resolve(true);
             };
 
-            const mockEventBus = await new MockEventBus().init([eventType1, eventType2], 'message-bus-test');
+            const mockEventBus = await new MockEventBus().register([eventType1, eventType2], 'message-bus-test');
 
             mockEventBus.subscribe<TestEventPayload1>(eventType1, mockHandler1);
             mockEventBus.subscribe<TestEventPayload2>(eventType2, mockHandler2);

@@ -80,7 +80,7 @@ describe('AMQP connector', () => {
             const eventType = 'test:event';
 
             (connect as jest.Mock).mockImplementation(async (): Promise<Connection> => mockConnection);
-            new AMQPConnector(url, channel(), [], [{ eventType, handler: jest.fn() }], 'service');
+            const conn = new AMQPConnector(url, channel(), [], [{ eventType, handler: jest.fn() }], 'service');
 
             await flushPromises();
             expect(mockChannel.assertQueue).toHaveBeenCalledTimes(1);
@@ -93,6 +93,8 @@ describe('AMQP connector', () => {
             );
             expect(mockChannel.consume).toHaveBeenCalledTimes(1);
             expect(mockChannel.consume.mock.calls[0][0]).toBe('consumer__test:event__service');
+            expect(conn.subscribedEvents).toHaveLength(1);
+            expect(conn.subscribedEvents[0]).toBe('test:event');
         });
     });
 

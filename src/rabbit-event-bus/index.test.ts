@@ -8,12 +8,11 @@ jest.mock('../logger');
 jest.mock('./amqp-connector');
 
 describe('AMQP Connection Manager', () => {
-    describe('destory', () => {
+    describe('destroy', () => {
         it('calls connector destroy method', async () => {
             const destroyMock = jest.fn();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             (AMQPConnector as jest.Mock).mockImplementation(() => ({ destroy: destroyMock }));
-            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const manager = await new RabbitEventBus({ url: '' }).register([], '');
 
             await manager.destroy();
 
@@ -24,8 +23,7 @@ describe('AMQP Connection Manager', () => {
     describe('behaviour in a good connection state', () => {
         it('forwards messages to a connector', async () => {
             const publishMock = jest.fn(async () => true);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            (AMQPConnector as jest.Mock).mockImplementation((__, [send, _]: Channel<StateChange>) => {
+            (AMQPConnector as jest.Mock).mockImplementation((__, [send]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -34,7 +32,7 @@ describe('AMQP Connection Manager', () => {
                     subscribe: jest.fn(),
                 };
             });
-            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const manager = await new RabbitEventBus({ url: '' }).register([], '');
             await manager.publish({
                 eventType: 'test',
                 id: 'something',
@@ -48,8 +46,7 @@ describe('AMQP Connection Manager', () => {
         it("passes on subscribes to the connector immediately, while it's ready", async () => {
             const subscribeMock = jest.fn();
             const [readyNotify, readyWait] = channel<{}>();
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            (AMQPConnector as jest.Mock).mockImplementation((__, [send, _]: Channel<StateChange>) => {
+            (AMQPConnector as jest.Mock).mockImplementation((__, [send]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -61,7 +58,7 @@ describe('AMQP Connection Manager', () => {
                 };
             });
 
-            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const manager = await new RabbitEventBus({ url: '' }).register([], '');
 
             await manager.subscribe('test', jest.fn());
 
@@ -75,26 +72,23 @@ describe('AMQP Connection Manager', () => {
             // This channel is used to simulate startup delay in the connector
             const [readyNotify, readyWait] = channel<{}>();
 
-            (AMQPConnector as jest.Mock).mockImplementation(
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                (___, [send, _]: Channel<StateChange>, __, subscriptions) => {
+            (AMQPConnector as jest.Mock).mockImplementation((___, [send]: Channel<StateChange>, __, subscriptions) => {
+                send({
+                    newState: 'CONNECTED',
+                });
+                readyWait().then(() => {
                     send({
-                        newState: 'CONNECTED',
+                        newState: 'NOT_CONNECTED',
                     });
-                    readyWait().then(() => {
-                        send({
-                            newState: 'NOT_CONNECTED',
-                        });
-                    });
-                    return {
-                        subscriptions,
-                        publish: publishMock,
-                        subscribe: jest.fn(),
-                    };
-                },
-            );
+                });
+                return {
+                    subscriptions,
+                    publish: publishMock,
+                    subscribe: jest.fn(),
+                };
+            });
 
-            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const manager = await new RabbitEventBus({ url: '' }).register([], '');
 
             Promise.all([
                 manager.publish({
@@ -135,42 +129,38 @@ describe('AMQP Connection Manager', () => {
             // This channel is used to simulate startup delay in the connector
             const [readyNotify, readyWait] = channel<{}>();
 
-            (AMQPConnector as jest.Mock).mockImplementation(
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
+            (AMQPConnector as jest.Mock).mockImplementation((__, [send]: Channel<StateChange>, _2, subscriptions) => {
+                send({
+                    newState: 'CONNECTED',
+                });
+                readyWait().then(() => {
                     send({
-                        newState: 'CONNECTED',
+                        newState: 'NOT_CONNECTED',
                     });
-                    readyWait().then(() => {
-                        send({
-                            newState: 'NOT_CONNECTED',
-                        });
-                    });
-                    return {
-                        subscriptions,
-                        connect: connectMock,
-                        publish: jest.fn(),
-                        subscribe: subscribeMock,
-                    };
-                },
-            );
+                });
+                return {
+                    subscriptions,
+                    connect: connectMock,
+                    publish: jest.fn(),
+                    subscribe: subscribeMock,
+                };
+            });
 
-            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const manager = await new RabbitEventBus({ url: '' }).register([], '');
 
             await manager.subscribe('test', jest.fn());
             await manager.subscribe('test', jest.fn());
             await manager.subscribe('test', jest.fn());
 
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            expect((manager as any).subscriptions.length).toEqual(3);
+            expect(manager.subscriptions.length).toEqual(3);
             expect(subscribeMock).toBeCalledTimes(3);
 
             // simulate some startup delay in the connector
             setTimeout(() => {
                 readyNotify({});
                 // Expect the connector to be created with subscriptions
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                expect((manager as any).connector.get().subscriptions.length).toEqual(3);
+                expect(manager.subscriptions).toHaveLength(3);
+                expect(manager.connector.isEmpty()).toBeFalsy();
                 done();
             }, 50);
         });
@@ -197,7 +187,7 @@ describe('AMQP Connection Manager', () => {
                 },
             );
 
-            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const manager = await new RabbitEventBus({ url: '' }).register([], '');
             const then = jest.fn();
 
             manager
@@ -236,22 +226,19 @@ describe('AMQP Connection Manager', () => {
         it('publish promises are resolved after a successful connection', async done => {
             const subscribeMock = jest.fn();
 
-            (AMQPConnector as jest.Mock).mockImplementation(
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-                    send({
-                        newState: 'CONNECTED',
-                    });
+            (AMQPConnector as jest.Mock).mockImplementation((__, [send]: Channel<StateChange>, _2, subscriptions) => {
+                send({
+                    newState: 'CONNECTED',
+                });
 
-                    return {
-                        subscriptions,
-                        publish: jest.fn(() => true),
-                        subscribe: subscribeMock,
-                    };
-                },
-            );
+                return {
+                    subscriptions,
+                    publish: jest.fn(() => true),
+                    subscribe: subscribeMock,
+                };
+            });
 
-            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const manager = await new RabbitEventBus({ url: '' }).register([], '');
             const then = jest.fn();
 
             manager
@@ -293,23 +280,20 @@ describe('AMQP Connection Manager', () => {
             let returnState: ConnectedState = 'NOT_CONNECTED';
             let returnPublish = false;
 
-            (AMQPConnector as jest.Mock).mockImplementation(
-                // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                (_0, [send, _1]: Channel<StateChange>, _2, subscriptions) => {
-                    send({
-                        newState: returnState,
-                    });
+            (AMQPConnector as jest.Mock).mockImplementation((__, [send]: Channel<StateChange>, _2, subscriptions) => {
+                send({
+                    newState: returnState,
+                });
 
-                    return {
-                        subscriptions,
-                        connect: connectMock,
-                        publish: jest.fn(() => returnPublish),
-                        subscribe: subscribeMock,
-                    };
-                },
-            );
+                return {
+                    subscriptions,
+                    connect: connectMock,
+                    publish: jest.fn(() => returnPublish),
+                    subscribe: subscribeMock,
+                };
+            });
 
-            const manager = await new RabbitEventBus({ url: '' }).init([], '');
+            const manager = await new RabbitEventBus({ url: '' }).register([], '');
             const then = jest.fn();
 
             manager

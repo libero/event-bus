@@ -1,5 +1,5 @@
 import { Option, None, Some } from 'funfix';
-import { Event, EventBus } from '../event-bus';
+import { Event, EventBus, EventType } from '../event-bus';
 import { Subscription } from './types';
 import AMQPConnector from './amqp-connector';
 import { InternalMessageQueue, QueuedEvent } from './internal-queue';
@@ -20,21 +20,29 @@ export interface RabbitEventBusConnectionOptions {
  * @implements {EventBus}
  */
 export default class RabbitEventBus implements EventBus, ConnectionOwner {
-    private connector: Option<AMQPConnector> = None;
+    private _connector: Option<AMQPConnector> = None;
     private connection: ConnectionObserver;
-    private eventDefinitions: string[];
+    private eventToHandle: EventType[];
     private serviceName = 'unknown-service';
     private url = '';
     private queue: InternalMessageQueue;
-    private subscriptions: Array<Subscription<unknown & object>> = [];
+    private _subscriptions: Array<Subscription<unknown & object>> = [];
 
     public constructor(connectionOpts: RabbitEventBusConnectionOptions) {
         this.url = connectionOpts.url;
     }
 
+    public get connector(): Option<AMQPConnector> {
+        return this._connector;
+    }
+
+    public get subscriptions(): Array<Subscription<unknown & object>> {
+        return this._subscriptions;
+    }
+
     // Can the params here be moved to the constructor?
-    public async init(eventDefinitions: string[], serviceName: string): Promise<this> {
-        this.eventDefinitions = eventDefinitions;
+    public async register(eventToHandle: EventType[], serviceName: string): Promise<this> {
+        this.eventToHandle = eventToHandle;
         this.serviceName = serviceName;
         this.queue = new InternalMessageQueue(this);
         this.connection = new ConnectionObserver(this);
@@ -53,7 +61,7 @@ export default class RabbitEventBus implements EventBus, ConnectionOwner {
     }
 
     public onDisconnect(): void {
-        this.connector = None;
+        this._connector = None;
     }
 
     public onStartReconnect(): void {
@@ -62,11 +70,11 @@ export default class RabbitEventBus implements EventBus, ConnectionOwner {
     }
 
     private connect(): void {
-        this.connector = Some(
+        this._connector = Some(
             new AMQPConnector(
                 this.url,
                 this.connection.channel,
-                this.eventDefinitions,
+                this.eventToHandle,
                 this.subscriptions,
                 this.serviceName,
             ),
