@@ -1,15 +1,16 @@
 // Abstract Message Queue - types and interfaces
 
+/**
+ * TODO: Once agreed, add these to DefinitelyTyped so they can be shared.
+ */
+
 export interface Event<T extends object> {
-    eventType: string;
-    // Should this be readonly? How would we set this? Constructor, builder? Currently the publisher sets this externally, we should probably set this internally as a uuid
-    id: string; // Generated when the event is emitted
-    created: Date;
-    payload: T; // The actual data
-    //Should version & context be removed from our own implimentation as we're not using them?
-    version?: number; // Version of the payload
-    context?: unknown; // context about the event itself, including the actor
-    // that triggered the transmission of the event;
+    readonly eventType: string;
+    readonly id: string; // Generated when the event is emitted
+    readonly created: Date;
+    readonly payload: T; // The actual data the event is carrying.
+    // version:  has been removed - so we can remain weakly typed
+    readonly source?: unknown; // meta data about the event source / origin.
 }
 
 export interface EventPublisher {
