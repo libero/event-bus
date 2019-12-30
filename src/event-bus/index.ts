@@ -1,15 +1,19 @@
 // Abstract Message Queue - types and interfaces
 
+/**
+ * TODO: Once agreed, add these to DefinitelyTyped so they can be shared.
+ */
+
+export type EventType = string;
+
 export interface Event<T extends object> {
-    eventType: string;
-    // Should this be readonly? How would we set this? Constructor, builder? Currently the publisher sets this externally, we should probably set this internally as a uuid
-    id: string; // Generated when the event is emitted
-    created: Date;
-    payload: T; // The actual data
-    //Should version & context be removed from our own implimentation as we're not using them?
-    version?: number; // Version of the payload
-    context?: unknown; // context about the event itself, including the actor
-    // that triggered the transmission of the event;
+    readonly eventType: EventType;
+    readonly id: string; // Generated when the event is emitted
+    readonly created: Date;
+    readonly payload: T; // The actual data the event is carrying.
+    // version:  has been removed - so we can remain weakly typed
+    // context: has also been removed - if you need information about the origin
+    //          source of the event then put it in the payload.
 }
 
 export interface EventPublisher {
@@ -22,13 +26,17 @@ export interface EventSubscriber {
     subscribe<T extends object>(eventType: string, handler: (event: Event<T>) => Promise<boolean>): void;
 }
 
-// Interface needed to be fulfilled in order to be used as an EventBus
-export interface EventBus extends EventPublisher, EventSubscriber {
-    // This needs to be documented better / commented better. What are eventDefinitions? how is a serviceName going to be used?
-    init(eventDefinitions: string[], serviceName: string): Promise<this>;
-
-    destroy(): Promise<void>;
+export abstract class EventBus {
+    // register the following:
+    // - eventsToHandle - a list of events you will publish/subscribe to
+    // - serviceName - used when subscribing to generate a unique queue for holding
+    // incoming messages of the form: `consumer__${eventType}__${serviceName}`
+    constructor(readonly eventsToHandle: EventType[], readonly serviceName: string) {}
+    destroy(): Promise<void> {
+        return Promise.resolve();
+    }
 }
+
 // This isn't generic enough
 export interface EventConfig {
     url: string;

@@ -1,9 +1,9 @@
 import { Sender, Channel } from 'rs-channel-node';
-import { Option } from 'funfix';
+import { Option, None } from 'funfix';
 import { Connection, Message } from 'amqplib';
 import * as amqplib from 'amqplib';
 import { InfraLogger as logger } from '../logger';
-import { Event } from '../event-bus';
+import { Event, EventType } from '../event-bus';
 import { Subscription, StateChange, Message as EventBusMessage } from './types';
 import { EventUtils } from './event-utils';
 
@@ -12,9 +12,9 @@ export default class AMQPConnector {
         send: Sender<StateChange>;
     };
     private serviceName = 'unknown-service';
-    private subscriptions: Array<Subscription<object>>;
     private connection: Connection;
     private destroyed = false;
+    private subscriptions: EventType[] = [];
 
     public constructor(
         url: string,
@@ -24,50 +24,19 @@ export default class AMQPConnector {
         serviceName: string,
     ) {
         this.externalConnector = { send: sender };
-        this.subscriptions = subscriptions;
         this.serviceName = serviceName;
 
         // Set up the connections to the AMQP server
         this.connect(url)
             .then(async connection => {
                 this.connection = connection;
-                // Setup the exchanges
-
-                const rabbitChannel = await this.connection.createChannel();
-                await Promise.all(
-                    eventDefs.map(async (eventType: string) =>
-                        rabbitChannel.assertExchange(EventUtils.eventTypeToExchange(eventType), 'fanout'),
-                    ),
-                )
-                    .catch(() => logger.fatal("can't create exchanges"))
-                    .then(() => {
-                        this.connected();
-                    });
-
-                // Create subscribers here
-                this.subscriptions.forEach(async subscription => {
-                    // subscribe
-                    await this.subscribe(subscription.eventType, subscription.handler);
-                });
+                this.setupExchanges(eventDefs, subscriptions);
             })
             .catch(() => {
                 // notify the manager object that the connection has failed
                 // logger.debug('connectionFailed, retrying');
                 this.disconnected();
             });
-    }
-
-    private async connect(rabbitUrl: string): Promise<Connection> {
-        try {
-            const connection = await amqplib.connect(rabbitUrl);
-            connection.on('error', () => this.disconnected());
-            connection.on('end', () => this.disconnected());
-            connection.on('close', () => this.disconnected());
-
-            return connection;
-        } catch (e) {
-            throw new Error('Connection failed');
-        }
     }
 
     public async destroy(): Promise<void> {
@@ -79,65 +48,45 @@ export default class AMQPConnector {
     }
 
     public async subscribe<P extends object>(
-        eventType: string,
+        eventType: EventType,
         handler: (ev: Event<P>) => Promise<boolean>,
     ): Promise<void> {
         // For the event identifier:
         //  - Declare a subscriber queue
         //  - bind that queue to event exchange
         // Runs the handler function on any event that matches that type
-        return Option.of(this.connection)
-            .map(async (conn: Connection) => {
-                const rabbitChannel = await conn.createChannel();
-                rabbitChannel.on('error', () => this.disconnected());
+        const channelOption = await this.createChannel();
 
-                return await rabbitChannel
-                    .assertQueue(EventUtils.eventTypeToQueue(eventType, this.serviceName))
-                    .then(async () => {
-                        await rabbitChannel.bindQueue(
-                            EventUtils.eventTypeToQueue(eventType, this.serviceName),
-                            EventUtils.eventTypeToExchange(eventType),
-                            '',
-                        );
-                        logger.trace('subscribe');
+        if (!channelOption.isEmpty()) {
+            const rabbitChannel = channelOption.get();
+            rabbitChannel.on('error', () => this.disconnected());
+            return rabbitChannel
+                .assertQueue(EventUtils.makeConsumerQueueName(eventType, this.serviceName))
+                .then(async () => {
+                    const qName = EventUtils.makeConsumerQueueName(eventType, this.serviceName);
+                    const exName = EventUtils.makeEventExchangeName(eventType);
 
-                        await rabbitChannel.consume(
-                            EventUtils.eventTypeToQueue(eventType, this.serviceName),
-                            async (msg: Message) => {
-                                try {
-                                    const message: EventBusMessage<Event<P>> = JSON.parse(msg.content.toString());
+                    await rabbitChannel.bindQueue(qName, exName, '');
+                    logger.trace('subscribe');
+                    this.subscriptions.push(eventType);
 
-                                    handler(message.event).then(isOk => {
-                                        if (isOk) {
-                                            // Ack
-                                            rabbitChannel.ack(msg);
-                                        } else {
-                                            // Nack
-                                            logger.warn('eventHandlerFailure');
-                                            rabbitChannel.nack(msg, false, true);
-                                        }
-                                    });
-                                } catch (e) {
-                                    rabbitChannel.nack(msg, false, false);
-                                    logger.warn("Can't parse JSON");
-                                }
-                            },
-                        );
-                    })
-                    .catch(() => {
-                        logger.fatal("can't create subscriber queues");
+                    await rabbitChannel.consume(qName, async (msg: Message) => {
+                        return this.decoratedHandler<P>(rabbitChannel, handler, msg);
                     });
-            })
-            .getOrElseL(() => {
-                // Do we want to handle reconnects &/or retries here?
-                setTimeout(() => this.subscribe(eventType, handler), 1000);
-                logger.warn("No connection, can't subscribe, trying again soon!");
-            });
+                })
+                .catch(() => {
+                    logger.fatal(`Can't create subscriber queues for: ${this.serviceName} using event: ${eventType}`);
+                });
+        } else {
+            // Do we want to handle reconnects &/or retries here?
+            setTimeout(() => this.subscribe(eventType, handler), 1000);
+            logger.warn("No connection, can't subscribe, trying again soon!");
+        }
     }
 
     public async publish<P extends object>(event: Event<P>): Promise<boolean> {
         // publish the message
-        const whereTo = EventUtils.eventTypeToExchange(event.eventType);
+        const whereTo = EventUtils.makeEventExchangeName(event.eventType);
         return Option.of(this.connection)
             .map(async connection => {
                 try {
@@ -161,6 +110,81 @@ export default class AMQPConnector {
             .getOrElse(false);
     }
 
+    public get subscribedEvents(): EventType[] {
+        return this.subscriptions;
+    }
+
+    private async createChannel(): Promise<Option<amqplib.Channel>> {
+        const conn = Option.of(this.connection);
+        if (conn.isEmpty()) {
+            return None;
+        } else {
+            return Option.of(await conn.get().createChannel());
+        }
+    }
+
+    private decoratedHandler<P extends object>(
+        rabbitChannel: amqplib.Channel,
+        handler: (ev: Event<P>) => Promise<boolean>,
+        msg: Message,
+    ): void {
+        try {
+            const message: EventBusMessage<Event<P>> = JSON.parse(msg.content.toString());
+
+            handler(message.event).then(isOk => {
+                if (isOk) {
+                    // Ack
+                    rabbitChannel.ack(msg);
+                } else {
+                    // Nack
+                    logger.warn('eventHandlerFailure', message.meta, message.event);
+                    rabbitChannel.nack(msg, false, true);
+                }
+            });
+        } catch (e) {
+            rabbitChannel.nack(msg, false, false);
+            logger.warn('Unable to parse message content to JSON', msg.content.toString(), e.toString());
+        }
+    }
+
+    private async setupExchanges(
+        eventDefs: string[],
+        subscriptions: Array<Subscription<unknown & object>>,
+    ): Promise<void> {
+        // Setup the exchanges
+
+        const rabbitChannel = await this.connection.createChannel();
+        this.subscriptions = [];
+
+        await Promise.all(
+            eventDefs.map(async (eventType: string) =>
+                rabbitChannel.assertExchange(EventUtils.makeEventExchangeName(eventType), 'fanout'),
+            ),
+        )
+            .catch(() => logger.fatal("can't create exchanges"))
+            .then(() => {
+                this.connected();
+            });
+
+        // Create subscribers here
+        subscriptions.forEach(async subscription => {
+            // subscribe
+            await this.subscribe(subscription.eventType, subscription.handler);
+        });
+    }
+
+    private async connect(rabbitUrl: string): Promise<Connection> {
+        try {
+            const connection = await amqplib.connect(rabbitUrl);
+            connection.on('error', () => this.disconnected());
+            connection.on('end', () => this.disconnected());
+            connection.on('close', () => this.disconnected());
+
+            return connection;
+        } catch (e) {
+            throw new Error('Connection failed');
+        }
+    }
     private disconnected(): void {
         if (!this.destroyed) {
             this.externalConnector.send({ newState: 'NOT_CONNECTED' });
