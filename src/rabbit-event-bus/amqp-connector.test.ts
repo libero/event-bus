@@ -5,6 +5,7 @@ import { StateChange } from './types';
 import { channel } from 'rs-channel-node';
 import { Event } from 'event-bus';
 import { InfraLogger as logger } from '../logger';
+import { EventUtils } from './event-utils';
 
 jest.mock('amqplib');
 jest.mock('../logger');
@@ -203,11 +204,22 @@ describe('AMQP connector', () => {
         });
 
         it('it should call the subscription handler and unacknowledged if not ok', async () => {
+            const testEvent = {
+                id: '12345',
+                eventType: 'test:event',
+                payload: { event: 'foo' },
+                created: new Date('2019-12-30T12:30:00'),
+            };
+
+            const messageString = JSON.stringify(EventUtils.eventToMessage<object>(testEvent));
+
             const mockChannel = makeChannel({
                 assertQueue: jest.fn().mockImplementation(() => Promise.resolve()),
                 consume: (___, callback) => {
                     callback({
-                        content: { toString: (): string => '{ "event": "foo" }' },
+                        content: {
+                            toString: (): string => messageString,
+                        },
                     });
                 },
             });
@@ -223,9 +235,20 @@ describe('AMQP connector', () => {
             await flushPromises();
             expect(handler).toHaveBeenCalledTimes(1);
             expect(logger.warn).toHaveBeenCalledTimes(1);
-            expect(logger.warn).toHaveBeenCalledWith('eventHandlerFailure');
+            expect(logger.warn).toHaveBeenCalledWith(
+                'eventHandlerFailure',
+                { attempts: 0, failures: 0, retries: 10 },
+                {
+                    created: '2019-12-30T12:30:00.000Z',
+                    eventType: 'test:event',
+                    id: '12345',
+                    payload: { event: 'foo' },
+                },
+            );
             expect(mockChannel.nack).toHaveBeenCalledTimes(1);
-            expect(mockChannel.nack.mock.calls[0][0].content.toString()).toBe('{ "event": "foo" }');
+            const unacknowledgedMessage = mockChannel.nack.mock.calls[0][0].content.toString();
+            expect(unacknowledgedMessage).toBe(messageString);
+
             expect(mockChannel.nack.mock.calls[0][1]).toBe(false);
             expect(mockChannel.nack.mock.calls[0][2]).toBe(true);
         });
@@ -253,7 +276,9 @@ describe('AMQP connector', () => {
         expect(handler).toHaveBeenCalledTimes(0);
         expect(logger.warn).toHaveBeenCalledTimes(1);
         expect(logger.warn).toHaveBeenCalledWith(
-            "Can't parse JSON! Error: SyntaxError: Unexpected token o in JSON at position 1",
+            'Unable to parse message content to JSON',
+            'not json',
+            'SyntaxError: Unexpected token o in JSON at position 1',
         );
         expect(mockChannel.nack).toHaveBeenCalledTimes(1);
         expect(mockChannel.nack.mock.calls[0][0].content.toString()).toBe('not json');

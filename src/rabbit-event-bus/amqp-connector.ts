@@ -137,13 +137,13 @@ export default class AMQPConnector {
                     rabbitChannel.ack(msg);
                 } else {
                     // Nack
-                    logger.warn('eventHandlerFailure');
+                    logger.warn('eventHandlerFailure', message.meta, message.event);
                     rabbitChannel.nack(msg, false, true);
                 }
             });
         } catch (e) {
             rabbitChannel.nack(msg, false, false);
-            logger.warn(`Can't parse JSON! Error: ${e}`);
+            logger.warn('Unable to parse message content to JSON', msg.content.toString(), e.toString());
         }
     }
 

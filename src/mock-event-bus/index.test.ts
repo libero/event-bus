@@ -73,7 +73,7 @@ describe('mock message queue', () => {
                 return Promise.resolve(true);
             };
 
-            const mockEventBus = await new MockEventBus([eventType1, eventType2], 'message-bus-test');
+            const mockEventBus = new MockEventBus([eventType1, eventType2], 'message-bus-test');
 
             mockEventBus.subscribe<TestEventPayload1>(eventType1, mockHandler1);
             mockEventBus.subscribe<TestEventPayload2>(eventType2, mockHandler2);
