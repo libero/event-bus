@@ -12,7 +12,7 @@ describe('AMQP Connection Manager', () => {
         it('calls connector destroy method', async () => {
             const destroyMock = jest.fn();
             (AMQPConnector as jest.Mock).mockImplementation(() => ({ destroy: destroyMock }));
-            const manager = await new RabbitEventBus({ url: '' }).register([], '');
+            const manager = await new RabbitEventBus({ url: '' }, [], '');
 
             await manager.destroy();
 
@@ -32,7 +32,7 @@ describe('AMQP Connection Manager', () => {
                     subscribe: jest.fn(),
                 };
             });
-            const manager = await new RabbitEventBus({ url: '' }).register([], '');
+            const manager = await new RabbitEventBus({ url: '' }, [], '');
             await manager.publish({
                 eventType: 'test',
                 id: 'something',
@@ -58,7 +58,7 @@ describe('AMQP Connection Manager', () => {
                 };
             });
 
-            const manager = await new RabbitEventBus({ url: '' }).register([], '');
+            const manager = await new RabbitEventBus({ url: '' }, [], '');
 
             await manager.subscribe('test', jest.fn());
 
@@ -88,7 +88,7 @@ describe('AMQP Connection Manager', () => {
                 };
             });
 
-            const manager = await new RabbitEventBus({ url: '' }).register([], '');
+            const manager = await new RabbitEventBus({ url: '' }, [], '');
 
             Promise.all([
                 manager.publish({
@@ -146,7 +146,7 @@ describe('AMQP Connection Manager', () => {
                 };
             });
 
-            const manager = await new RabbitEventBus({ url: '' }).register([], '');
+            const manager = await new RabbitEventBus({ url: '' }, [], '');
 
             await manager.subscribe('test', jest.fn());
             await manager.subscribe('test', jest.fn());
@@ -187,7 +187,7 @@ describe('AMQP Connection Manager', () => {
                 },
             );
 
-            const manager = await new RabbitEventBus({ url: '' }).register([], '');
+            const manager = await new RabbitEventBus({ url: '' }, [], '');
             const then = jest.fn();
 
             manager
@@ -238,7 +238,7 @@ describe('AMQP Connection Manager', () => {
                 };
             });
 
-            const manager = await new RabbitEventBus({ url: '' }).register([], '');
+            const manager = await new RabbitEventBus({ url: '' }, [], '');
             const then = jest.fn();
 
             manager
@@ -293,7 +293,7 @@ describe('AMQP Connection Manager', () => {
                 };
             });
 
-            const manager = await new RabbitEventBus({ url: '' }).register([], '');
+            const manager = await new RabbitEventBus({ url: '' }, [], '');
             const then = jest.fn();
 
             manager

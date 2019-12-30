@@ -1,4 +1,4 @@
-import { EventBus, Event, EventType } from '../event-bus';
+import { EventBus, Event, EventPublisher, EventSubscriber } from '../event-bus';
 export type AnyEvent = Event<object>;
 export type AnyHandler = (ev: AnyEvent) => Promise<boolean>;
 
@@ -7,16 +7,8 @@ export type AnyHandler = (ev: AnyEvent) => Promise<boolean>;
  * the event-bus. Examples are: audit and continuum-auth.
  */
 
-export class MockEventBus implements EventBus {
+export class MockEventBus extends EventBus implements EventPublisher, EventSubscriber {
     private queues: Map<string, AnyHandler> = new Map();
-    private eventsToHandle: EventType[];
-    private serviceName: string;
-
-    public async register(eventsToHandle: EventType[], serviceName: string): Promise<this> {
-        this.eventsToHandle = eventsToHandle;
-        this.serviceName = serviceName;
-        return this;
-    }
 
     public async publish<T extends object>(event: Event<T>): Promise<boolean> {
         const fn = this.queues.get(`${event.eventType}`);
@@ -36,9 +28,5 @@ export class MockEventBus implements EventBus {
             Promise.reject(`Service name not set!`);
         }
         this.queues.set(`${eventType}`, handler);
-    }
-
-    public async destroy(): Promise<void> {
-        return Promise.resolve();
     }
 }

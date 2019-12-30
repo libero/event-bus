@@ -26,16 +26,17 @@ export interface EventSubscriber {
     subscribe<T extends object>(eventType: string, handler: (event: Event<T>) => Promise<boolean>): void;
 }
 
-// Interface needed to be fulfilled in order to be used as an EventBus
-export interface EventBus extends EventPublisher, EventSubscriber {
+export abstract class EventBus {
     // register the following:
     // - eventsToHandle - a list of events you will publish/subscribe to
     // - serviceName - used when subscribing to generate a unique queue for holding
     // incoming messages of the form: `consumer__${eventType}__${serviceName}`
-    register(eventsToHandle: EventType[], serviceName: string): Promise<this>;
-
-    destroy(): Promise<void>;
+    constructor(readonly eventsToHandle: EventType[], readonly serviceName: string) {}
+    destroy(): Promise<void> {
+        return Promise.resolve();
+    }
 }
+
 // This isn't generic enough
 export interface EventConfig {
     url: string;

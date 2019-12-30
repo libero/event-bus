@@ -1,5 +1,5 @@
 import { Option, None, Some } from 'funfix';
-import { Event, EventBus, EventType } from '../event-bus';
+import { Event, EventBus, EventType, EventPublisher, EventSubscriber } from '../event-bus';
 import { Subscription } from './types';
 import AMQPConnector from './amqp-connector';
 import { InternalMessageQueue, QueuedEvent } from './internal-queue';
@@ -19,17 +19,23 @@ export interface RabbitEventBusConnectionOptions {
  * @class RabbitEventBus
  * @implements {EventBus}
  */
-export default class RabbitEventBus implements EventBus, ConnectionOwner {
+export default class RabbitEventBus extends EventBus implements EventPublisher, EventSubscriber, ConnectionOwner {
     private _connector: Option<AMQPConnector> = None;
     private connection: ConnectionObserver;
-    private eventToHandle: EventType[];
-    private serviceName = 'unknown-service';
     private url = '';
     private queue: InternalMessageQueue;
     private _subscriptions: Array<Subscription<unknown & object>> = [];
 
-    public constructor(connectionOpts: RabbitEventBusConnectionOptions) {
+    public constructor(
+        connectionOpts: RabbitEventBusConnectionOptions,
+        eventToHandle: EventType[],
+        serviceName: string,
+    ) {
+        super(eventToHandle, serviceName);
         this.url = connectionOpts.url;
+        this.queue = new InternalMessageQueue(this);
+        this.connection = new ConnectionObserver(this);
+        this.connect();
     }
 
     public get connector(): Option<AMQPConnector> {
@@ -38,16 +44,6 @@ export default class RabbitEventBus implements EventBus, ConnectionOwner {
 
     public get subscriptions(): Array<Subscription<unknown & object>> {
         return this._subscriptions;
-    }
-
-    // Can the params here be moved to the constructor?
-    public async register(eventToHandle: EventType[], serviceName: string): Promise<this> {
-        this.eventToHandle = eventToHandle;
-        this.serviceName = serviceName;
-        this.queue = new InternalMessageQueue(this);
-        this.connection = new ConnectionObserver(this);
-        this.connect();
-        return this;
     }
 
     public async destroy(): Promise<void> {
@@ -74,7 +70,7 @@ export default class RabbitEventBus implements EventBus, ConnectionOwner {
             new AMQPConnector(
                 this.url,
                 this.connection.channel,
-                this.eventToHandle,
+                this.eventsToHandle,
                 this.subscriptions,
                 this.serviceName,
             ),
