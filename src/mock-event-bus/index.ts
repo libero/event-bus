@@ -29,4 +29,8 @@ export class MockEventBus extends EventBus implements EventPublisher, EventSubsc
         }
         this.queues.set(`${eventType}`, handler);
     }
+
+    destroy(): Promise<void> {
+        return Promise.resolve();
+    }
 }

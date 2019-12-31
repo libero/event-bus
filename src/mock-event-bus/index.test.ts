@@ -1,5 +1,5 @@
 import { MockEventBus } from '.';
-import { Event } from '../event-bus';
+import { Event, eventFactory } from '../event-bus';
 
 interface TestEventPayload1 {
     x: number;
@@ -11,10 +11,16 @@ interface TestEventPayload2 {
     b: number;
 }
 
-type MockEvent1 = Event<TestEventPayload1>;
-type MockEvent2 = Event<TestEventPayload2>;
+type MockEventType1 = Event<TestEventPayload1>;
+type MockEventType2 = Event<TestEventPayload2>;
 
 describe('mock message queue', () => {
+    // describe('object lifetime', () => {
+    //     it('can do the full flow', async () => {
+    //         const x = 2;
+    //     });
+    // });
+
     describe('you can publish and subscribe', () => {
         it('can do the full flow', async () => {
             const eventType = 'libero:mock:test';
@@ -22,14 +28,9 @@ describe('mock message queue', () => {
             const mockHandler = jest.fn(async () => true);
             const mockEventBus = await new MockEventBus([eventType], 'message-bus-test');
 
-            mockEventBus.subscribe<MockEvent1>(eventType, mockHandler);
+            mockEventBus.subscribe<MockEventType1>(eventType, mockHandler);
 
-            const event: Event<TestEventPayload1> = {
-                eventType,
-                id: 'some-testing-event-id',
-                created: new Date(),
-                payload: { x: 10, y: 20 },
-            };
+            const event = eventFactory<TestEventPayload1>(eventType, { x: 10, y: 20 });
 
             mockEventBus.publish<TestEventPayload1>(event);
 
@@ -41,14 +42,14 @@ describe('mock message queue', () => {
             const eventType1 = 'libero:mock:test1';
             const eventType2 = 'libero:mock:test2';
 
-            const event1: MockEvent1 = {
+            const event1: MockEventType1 = {
                 eventType: eventType1,
                 id: 'some-testing-event1-id',
                 created: new Date(),
                 payload: { x: 10, y: 20 },
             };
 
-            const event2: MockEvent2 = {
+            const event2: MockEventType2 = {
                 eventType: eventType2,
                 id: 'some-testing-event2-id',
                 created: new Date(),
