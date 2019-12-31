@@ -1,5 +1,5 @@
 import { EventBus, Event, EventPublisher, EventSubscriber } from '../event-bus';
-export type AnyEvent = Event<object>;
+export type AnyEvent = Event;
 export type AnyHandler = (ev: AnyEvent) => Promise<boolean>;
 
 /**
@@ -10,7 +10,7 @@ export type AnyHandler = (ev: AnyEvent) => Promise<boolean>;
 export class MockEventBus extends EventBus implements EventPublisher, EventSubscriber {
     private queues: Map<string, AnyHandler> = new Map();
 
-    public async publish<T extends object>(event: Event<T>): Promise<boolean> {
+    public async publish(event: Event): Promise<boolean> {
         const fn = this.queues.get(`${event.eventType}`);
         if (fn) {
             if (this.eventsToHandle.includes(event.eventType)) {
@@ -20,10 +20,7 @@ export class MockEventBus extends EventBus implements EventPublisher, EventSubsc
         return Promise.resolve(false);
     }
 
-    public async subscribe<T extends object>(
-        eventType: string,
-        handler: (event: Event<T>) => Promise<boolean>,
-    ): Promise<void> {
+    public async subscribe(eventType: string, handler: (event: Event) => Promise<boolean>): Promise<void> {
         if (!this.serviceName) {
             Promise.reject(`Service name not set!`);
         }

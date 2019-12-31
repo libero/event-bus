@@ -134,7 +134,7 @@ describe('AMQP connector', () => {
 
             // we need to wait for connection to be stored before we can publish
             await flushPromises();
-            await connector.publish(event as Event<{}>);
+            await connector.publish(event as Event);
 
             await flushPromises();
             expect(mockChannel.publish).toHaveBeenCalledTimes(1);
