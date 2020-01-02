@@ -27,12 +27,10 @@ describe('MockEventBus', () => {
         });
     });
 
-    it('publish throws if no handler', async () => {
+    it('publish does not throw if no handler', async () => {
         const mockEventBus = new MockEventBus([TestEvent.eventName], 'message-bus-test');
         const testEvent = new TestEvent({ x: 'test' });
-        expect(mockEventBus.publish(testEvent)).rejects.toStrictEqual(
-            new Error('handler for libero:mock:test is undefined or not a function'),
-        );
+        expect(mockEventBus.publish(testEvent)).resolves.not.toThrow();
     });
 
     it('subscribe throws if no service name', async () => {
@@ -44,15 +42,22 @@ describe('MockEventBus', () => {
     });
 
     it('subscribe throws if no event name', async () => {
-        const mockEventBus = new MockEventBus([TestEvent.eventName], 'service');
+        const mockEventBus = new MockEventBus([''], 'service');
         expect(mockEventBus.subscribe('', mockHandler)).rejects.toStrictEqual(new Error('EventType name not set!'));
     });
 
     it('subscribe throws if handler set twice', async () => {
-        const mockEventBus = new MockEventBus([TestEvent.eventName], 'service');
+        const mockEventBus = new MockEventBus(['test'], 'service');
         expect(mockEventBus.subscribe('test', mockHandler)).resolves.not.toThrow();
         expect(mockEventBus.subscribe('test', mockHandler)).rejects.toStrictEqual(
             new Error(`Handler already set for 'test' set!`),
+        );
+    });
+
+    it('subscribe throws if event type not registered in constructor', async () => {
+        const mockEventBus = new MockEventBus(['test2'], 'service');
+        expect(mockEventBus.subscribe('test', mockHandler)).rejects.toStrictEqual(
+            new Error('EventBus not constructed to subscribe to that event!'),
         );
     });
 

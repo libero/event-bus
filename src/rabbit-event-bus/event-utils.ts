@@ -11,7 +11,7 @@ export class EventUtils {
         return `consumer__${eventType}__${serviceName}`;
     }
 
-    public static eventToMessage<T extends object>(event: Event<T>): Message<Event<T>> {
+    public static eventToMessage(event: Event): Message<Event> {
         // Wrap the event in some internal transport layer format, in effect transforming the
         // event into a message
         return {

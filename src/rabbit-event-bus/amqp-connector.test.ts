@@ -211,7 +211,7 @@ describe('AMQP connector', () => {
                 created: new Date('2019-12-30T12:30:00'),
             };
 
-            const messageString = JSON.stringify(EventUtils.eventToMessage<object>(testEvent));
+            const messageString = JSON.stringify(EventUtils.eventToMessage(testEvent));
 
             const mockChannel = makeChannel({
                 assertQueue: jest.fn().mockImplementation(() => Promise.resolve()),

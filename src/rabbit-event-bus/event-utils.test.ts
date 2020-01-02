@@ -20,9 +20,9 @@ describe('EventUtils', () => {
     });
     describe('eventToMessage', () => {
         it('correctly transforms Event object into a Message object', () => {
-            const mockEvent = ({} as unknown) as Event<unknown & object>;
+            const mockEvent = ({} as unknown) as Event;
             const message = EventUtils.eventToMessage(mockEvent);
-            expect(message).toMatchObject<Message<Event<unknown & object>>>({
+            expect(message).toMatchObject<Message<Event>>({
                 event: mockEvent,
                 meta: {
                     attempts: 0,

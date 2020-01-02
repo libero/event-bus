@@ -11,19 +11,17 @@ export class MockEventBus extends EventBus implements EventPublisher, EventSubsc
     private queues: Map<string, AnyHandler> = new Map();
 
     public async publish(event: Event): Promise<void> {
-        if (!this.eventsToHandle.includes(event.eventType)) {
-            return;
-        }
         const fn = this.queues.get(`${event.eventType}`);
 
         if (fn !== undefined && typeof fn === 'function') {
             fn(event);
-        } else {
-            throw new Error(`handler for ${event.eventType} is undefined or not a function`);
         }
     }
 
     public async subscribe(eventType: string, handler: (event: Event) => Promise<boolean>): Promise<void> {
+        if (!this.eventsToHandle.includes(eventType)) {
+            throw new Error(`EventBus not constructed to subscribe to that event!`);
+        }
         if (!this.serviceName) {
             throw new Error(`Service name not set!`);
         }
