@@ -1,4 +1,5 @@
-import { EventType, Event, EventPublisher, EventSubscriber, EventConfig } from './types';
+import { EventType, EventPublisher, EventSubscriber, EventConfig } from './types';
+import { Event } from './event';
 
 function createValidationFunction<T>(properties: Record<keyof T, boolean>): Function {
     return function<TActual extends T>(value: TActual): T {
@@ -26,42 +27,23 @@ function createValidationFunction<T>(properties: Record<keyof T, boolean>): Func
     };
 }
 
-describe('Event Bus Types', () => {
-    it('type EventType is string', () => {
+describe('EventType', () => {
+    it('is string', () => {
         const et: EventType = 'this is a string';
         expect(typeof et).toBe('string');
     });
+});
 
-    it('interface Event contains expected members', () => {
-        const expectedEventProperties = {
-            eventType: true,
-            id: true,
-            created: true,
-            payload: true,
-            version: false,
-            context: false,
-        };
-
-        class ExpectedToBeAnEvent {
-            id = '234';
-            created: Date = new Date();
-            payload: {} = {};
-            eventType = 'type';
-        }
-        const isValidEvent = createValidationFunction<Event<{}>>(expectedEventProperties);
-        const ee = new ExpectedToBeAnEvent();
-        expect(() => isValidEvent(ee)).not.toThrow();
-        expect(() => ee as Event<{}>).not.toThrow();
-    });
-
-    it('interface EventPublisher contains expected members', () => {
+describe('EventPublisher', () => {
+    it('contains contains only publish', () => {
         const expectedEventPublisherProperties = {
             publish: true,
         };
 
         class ExpectedToBeAnEventPublisher {
-            publish<T extends object>(event: Event<T>): Promise<boolean> {
-                return Promise.resolve(event !== null);
+            publish(event: Event): Promise<void> {
+                expect(event).toBeTruthy();
+                return Promise.resolve();
             }
         }
         const isValidEventPublisher = createValidationFunction<EventPublisher>(expectedEventPublisherProperties);
@@ -69,14 +51,16 @@ describe('Event Bus Types', () => {
         expect(() => isValidEventPublisher(ep)).not.toThrow();
         expect(() => ep as EventPublisher).not.toThrow();
     });
+});
 
+describe('EventSubscription', () => {
     it('interface EventSubscriber contains expected members', () => {
         const expectedEventSubscriberProperties = {
             subscribe: true,
         };
 
         class ExpectedToBeAnEventSubscriber {
-            subscribe<T extends object>(eventType: string, handler: (event: Event<T>) => Promise<boolean>): void {
+            subscribe(eventType: string, handler: (event: Event) => Promise<boolean>): void {
                 Promise.resolve(eventType !== '' && handler !== null);
             }
         }
@@ -85,8 +69,10 @@ describe('Event Bus Types', () => {
         expect(() => isValidEventSubscriber(es)).not.toThrow();
         expect(() => es as EventSubscriber).not.toThrow();
     });
+});
 
-    it('interface EventConfig contains expected members', () => {
+describe('EventConfig', () => {
+    it('contains only url', () => {
         const expectedEventConfigProperties = {
             url: true,
         };

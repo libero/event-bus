@@ -10,21 +10,31 @@ export type AnyHandler = (ev: AnyEvent) => Promise<boolean>;
 export class MockEventBus extends EventBus implements EventPublisher, EventSubscriber {
     private queues: Map<string, AnyHandler> = new Map();
 
-    public async publish(event: Event): Promise<boolean> {
-        const fn = this.queues.get(`${event.eventType}`);
-        if (fn) {
-            if (this.eventsToHandle.includes(event.eventType)) {
-                return fn(event);
-            }
+    public async publish(event: Event): Promise<void> {
+        if (!this.eventsToHandle.includes(event.eventType)) {
+            return;
         }
-        return Promise.resolve(false);
+        const fn = this.queues.get(`${event.eventType}`);
+
+        if (fn !== undefined && typeof fn === 'function') {
+            fn(event);
+        } else {
+            throw new Error(`handler for ${event.eventType} is undefined or not a function`);
+        }
     }
 
     public async subscribe(eventType: string, handler: (event: Event) => Promise<boolean>): Promise<void> {
         if (!this.serviceName) {
-            Promise.reject(`Service name not set!`);
+            throw new Error(`Service name not set!`);
         }
-        this.queues.set(`${eventType}`, handler);
+        if (!eventType) {
+            throw new Error(`EventType name not set!`);
+        }
+        const key = `${eventType}`;
+        if (this.queues.has(key)) {
+            throw new Error(`Handler already set for '${eventType}' set!`);
+        }
+        this.queues.set(key, handler);
     }
 
     destroy(): Promise<void> {

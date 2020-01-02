@@ -16,7 +16,7 @@ export interface Message<T> {
     };
 }
 
-export interface Subscription<P extends object> {
+export interface Subscription {
     eventType: string;
-    handler: (ev: Event<P>) => Promise<boolean>;
+    handler: (ev: Event) => Promise<boolean>;
 }

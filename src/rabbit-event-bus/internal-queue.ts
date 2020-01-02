@@ -2,8 +2,8 @@ import { Event, EventPublisher } from '../event-bus';
 import { Option } from 'funfix';
 
 export interface QueuedEvent {
-    event: Event<unknown & object>;
-    resolve: (arg0: boolean) => void;
+    event: Event;
+    resolve: (arg0: void) => void;
     reject: (arg0: boolean) => void;
 }
 
