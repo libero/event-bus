@@ -134,7 +134,7 @@ describe('AMQP connector', () => {
 
             // we need to wait for connection to be stored before we can publish
             await flushPromises();
-            await connector.publish(event as Event<{}>);
+            await connector.publish(event as Event);
 
             await flushPromises();
             expect(mockChannel.publish).toHaveBeenCalledTimes(1);
@@ -211,7 +211,7 @@ describe('AMQP connector', () => {
                 created: new Date('2019-12-30T12:30:00'),
             };
 
-            const messageString = JSON.stringify(EventUtils.eventToMessage<object>(testEvent));
+            const messageString = JSON.stringify(EventUtils.eventToMessage(testEvent));
 
             const mockChannel = makeChannel({
                 assertQueue: jest.fn().mockImplementation(() => Promise.resolve()),

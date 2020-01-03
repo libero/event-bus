@@ -1,5 +1,5 @@
 import { EventBus, Event, EventPublisher, EventSubscriber } from '../event-bus';
-export type AnyEvent = Event<object>;
+export type AnyEvent = Event;
 export type AnyHandler = (ev: AnyEvent) => Promise<boolean>;
 
 /**
@@ -10,23 +10,32 @@ export type AnyHandler = (ev: AnyEvent) => Promise<boolean>;
 export class MockEventBus extends EventBus implements EventPublisher, EventSubscriber {
     private queues: Map<string, AnyHandler> = new Map();
 
-    public async publish<T extends object>(event: Event<T>): Promise<boolean> {
+    public async publish(event: Event): Promise<void> {
         const fn = this.queues.get(`${event.eventType}`);
-        if (fn) {
-            if (this.eventsToHandle.includes(event.eventType)) {
-                return fn(event);
-            }
+
+        if (fn !== undefined && typeof fn === 'function') {
+            fn(event);
         }
-        return Promise.resolve(false);
     }
 
-    public async subscribe<T extends object>(
-        eventType: string,
-        handler: (event: Event<T>) => Promise<boolean>,
-    ): Promise<void> {
-        if (!this.serviceName) {
-            Promise.reject(`Service name not set!`);
+    public async subscribe(eventType: string, handler: (event: Event) => Promise<boolean>): Promise<void> {
+        if (!this.eventsToHandle.includes(eventType)) {
+            throw new Error(`EventBus not constructed to subscribe to that event!`);
         }
-        this.queues.set(`${eventType}`, handler);
+        if (!this.serviceName) {
+            throw new Error(`Service name not set!`);
+        }
+        if (!eventType) {
+            throw new Error(`EventType name not set!`);
+        }
+        const key = `${eventType}`;
+        if (this.queues.has(key)) {
+            throw new Error(`Handler already set for '${eventType}' set!`);
+        }
+        this.queues.set(key, handler);
+    }
+
+    destroy(): Promise<void> {
+        return Promise.resolve();
     }
 }

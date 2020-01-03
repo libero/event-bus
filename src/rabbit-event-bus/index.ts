@@ -24,7 +24,7 @@ export default class RabbitEventBus extends EventBus implements EventPublisher, 
     private connection: ConnectionObserver;
     private url = '';
     private queue: InternalMessageQueue;
-    private _subscriptions: Array<Subscription<unknown & object>> = [];
+    private _subscriptions: Array<Subscription> = [];
 
     public constructor(
         connectionOpts: RabbitEventBusConnectionOptions,
@@ -42,7 +42,7 @@ export default class RabbitEventBus extends EventBus implements EventPublisher, 
         return this._connector;
     }
 
-    public get subscriptions(): Array<Subscription<unknown & object>> {
+    public get subscriptions(): Array<Subscription> {
         return this._subscriptions;
     }
 
@@ -79,17 +79,16 @@ export default class RabbitEventBus extends EventBus implements EventPublisher, 
 
     // This method will not resolve until the event has been successfully published so that
     // the user never has to know about the internal queue
-    public publish<P extends object>(msg: Event<P>): Promise<boolean> {
+    public publish(msg: Event): Promise<void> {
         return new Promise(async (resolve, reject) => {
             if (this.connection.isConnected) {
-                // Should we queue messages that fail?
                 const published: boolean = await this.connector.get().publish(msg);
 
                 if (!published) {
                     const qEvent: QueuedEvent = { event: msg, resolve, reject };
                     this.queue.push(qEvent);
                 } else {
-                    resolve(published);
+                    resolve();
                 }
             } else {
                 const qEvent: QueuedEvent = { event: msg, resolve, reject };
@@ -98,10 +97,7 @@ export default class RabbitEventBus extends EventBus implements EventPublisher, 
         });
     }
 
-    public async subscribe<P extends object>(
-        eventType: string,
-        handler: (event: Event<P>) => Promise<boolean>,
-    ): Promise<number> {
+    public async subscribe(eventType: string, handler: (event: Event) => Promise<boolean>): Promise<number> {
         this.connector.map(connector => {
             connector.subscribe(eventType, handler);
         });

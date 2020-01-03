@@ -20,7 +20,7 @@ export default class AMQPConnector {
         url: string,
         [sender]: Channel<StateChange>,
         eventDefs: string[],
-        subscriptions: Array<Subscription<unknown & object>>,
+        subscriptions: Array<Subscription>,
         serviceName: string,
     ) {
         this.externalConnector = { send: sender };
@@ -47,10 +47,7 @@ export default class AMQPConnector {
         }
     }
 
-    public async subscribe<P extends object>(
-        eventType: EventType,
-        handler: (ev: Event<P>) => Promise<boolean>,
-    ): Promise<void> {
+    public async subscribe(eventType: EventType, handler: (ev: Event) => Promise<boolean>): Promise<void> {
         // For the event identifier:
         //  - Declare a subscriber queue
         //  - bind that queue to event exchange
@@ -71,7 +68,7 @@ export default class AMQPConnector {
                     this.subscriptions.push(eventType);
 
                     await rabbitChannel.consume(qName, async (msg: Message) => {
-                        return this.decoratedHandler<P>(rabbitChannel, handler, msg);
+                        return this.decoratedHandler(rabbitChannel, handler, msg);
                     });
                 })
                 .catch(() => {
@@ -84,7 +81,7 @@ export default class AMQPConnector {
         }
     }
 
-    public async publish<P extends object>(event: Event<P>): Promise<boolean> {
+    public async publish(event: Event): Promise<boolean> {
         // publish the message
         const whereTo = EventUtils.makeEventExchangeName(event.eventType);
         return Option.of(this.connection)
@@ -123,13 +120,13 @@ export default class AMQPConnector {
         }
     }
 
-    private decoratedHandler<P extends object>(
+    private decoratedHandler(
         rabbitChannel: amqplib.Channel,
-        handler: (ev: Event<P>) => Promise<boolean>,
+        handler: (ev: Event) => Promise<boolean>,
         msg: Message,
     ): void {
         try {
-            const message: EventBusMessage<Event<P>> = JSON.parse(msg.content.toString());
+            const message: EventBusMessage<Event> = JSON.parse(msg.content.toString());
 
             handler(message.event).then(isOk => {
                 if (isOk) {
@@ -147,12 +144,7 @@ export default class AMQPConnector {
         }
     }
 
-    private async setupExchanges(
-        eventDefs: string[],
-        subscriptions: Array<Subscription<unknown & object>>,
-    ): Promise<void> {
-        // Setup the exchanges
-
+    private async setupExchanges(eventDefs: string[], subscriptions: Array<Subscription>): Promise<void> {
         const rabbitChannel = await this.connection.createChannel();
         this.subscriptions = [];
 
