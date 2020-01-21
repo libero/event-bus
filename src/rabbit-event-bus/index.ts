@@ -35,7 +35,6 @@ export default class RabbitEventBus extends EventBus implements EventPublisher, 
         this.url = connectionOpts.url;
         this.queue = new InternalMessageQueue(this);
         this.connection = new ConnectionObserver(this);
-        this.connect();
     }
 
     public get connector(): Option<AMQPConnector> {
@@ -65,16 +64,12 @@ export default class RabbitEventBus extends EventBus implements EventPublisher, 
         reconnect();
     }
 
-    private connect(): void {
-        this._connector = Some(
-            new AMQPConnector(
-                this.url,
-                this.connection.channel,
-                this.eventsToHandle,
-                this.subscriptions,
-                this.serviceName,
-            ),
-        );
+    public async connect(): Promise<void> {
+        this._connector = Some(new AMQPConnector(this.connection.channel, this.serviceName));
+
+        if (!this._connector.isEmpty()) {
+            await this._connector.get().setup(this.url, this.eventsToHandle, this.subscriptions);
+        }
     }
 
     // This method will not resolve until the event has been successfully published so that

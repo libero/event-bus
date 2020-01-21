@@ -16,21 +16,18 @@ export default class AMQPConnector {
     private destroyed = false;
     private subscriptions: EventType[] = [];
 
-    public constructor(
-        url: string,
-        [sender]: Channel<StateChange>,
-        eventDefs: string[],
-        subscriptions: Array<Subscription>,
-        serviceName: string,
-    ) {
+    public constructor([sender]: Channel<StateChange>, serviceName: string) {
         this.externalConnector = { send: sender };
         this.serviceName = serviceName;
+    }
 
+    public async setup(url: string, eventDefs: string[], subscriptions: Array<Subscription>): Promise<void> {
         // Set up the connections to the AMQP server
-        this.connect(url)
+        return this.connect(url)
             .then(async connection => {
                 this.connection = connection;
-                this.setupExchanges(eventDefs, subscriptions);
+                console.log('has connection')
+                await this.setupExchanges(eventDefs, subscriptions);
             })
             .catch(() => {
                 // notify the manager object that the connection has failed
@@ -54,6 +51,8 @@ export default class AMQPConnector {
         // Runs the handler function on any event that matches that type
         const channelOption = await this.createChannel();
 
+        console.log('has connection: ', !!this.connection);
+
         if (!channelOption.isEmpty()) {
             const rabbitChannel = channelOption.get();
             rabbitChannel.on('error', () => this.disconnected());
@@ -75,9 +74,13 @@ export default class AMQPConnector {
                     logger.fatal(`Can't create subscriber queues for: ${this.serviceName} using event: ${eventType}`);
                 });
         } else {
+            logger.warn("No CONTAINER, can't subscribe, trying again soon!");
             // Do we want to handle reconnects &/or retries here?
-            setTimeout(() => this.subscribe(eventType, handler), 1000);
-            logger.warn("No connection, can't subscribe, trying again soon!");
+            return new Promise(resolve => setTimeout(async () => {
+                    await this.subscribe(eventType, handler);
+                    resolve();
+                }, 1000),
+            );
         }
     }
 
