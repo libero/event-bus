@@ -3,7 +3,6 @@ import * as flushPromises from 'flush-promises';
 import AMQPConnector from './amqp-connector';
 import { StateChange } from './types';
 import { channel } from 'rs-channel-node';
-// import { Event } from 'event-bus';
 import { InfraLogger as logger } from '../logger';
 import { EventUtils } from './event-utils';
 import { Event } from 'index';
