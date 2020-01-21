@@ -70,13 +70,14 @@ export default class AMQPConnector {
                     logger.fatal(`Can't create subscriber queues for: ${this.serviceName} using event: ${eventType}`);
                 });
         } else {
-            logger.warn("No CONTAINER, can't subscribe, trying again soon!");
+            const retryIn = 1000;
+            logger.warn(`No connection, can't subscribe. Trying again in ${retryIn} milliseconds`);
             // Do we want to handle reconnects &/or retries here?
             return new Promise(resolve =>
                 setTimeout(async () => {
                     await this.subscribe(eventType, handler);
                     resolve();
-                }, 1000),
+                }, retryIn),
             );
         }
     }
