@@ -26,7 +26,6 @@ export default class AMQPConnector {
         return this.connect(url)
             .then(async connection => {
                 this.connection = connection;
-                console.log('has connection')
                 await this.setupExchanges(eventDefs, subscriptions);
             })
             .catch(() => {
@@ -51,8 +50,6 @@ export default class AMQPConnector {
         // Runs the handler function on any event that matches that type
         const channelOption = await this.createChannel();
 
-        console.log('has connection: ', !!this.connection);
-
         if (!channelOption.isEmpty()) {
             const rabbitChannel = channelOption.get();
             rabbitChannel.on('error', () => this.disconnected());
@@ -63,7 +60,6 @@ export default class AMQPConnector {
                     const exName = EventUtils.makeEventExchangeName(eventType);
 
                     await rabbitChannel.bindQueue(qName, exName, '');
-                    logger.trace('subscribe');
                     this.subscriptions.push(eventType);
 
                     await rabbitChannel.consume(qName, async (msg: Message) => {
@@ -76,7 +72,8 @@ export default class AMQPConnector {
         } else {
             logger.warn("No CONTAINER, can't subscribe, trying again soon!");
             // Do we want to handle reconnects &/or retries here?
-            return new Promise(resolve => setTimeout(async () => {
+            return new Promise(resolve =>
+                setTimeout(async () => {
                     await this.subscribe(eventType, handler);
                     resolve();
                 }, 1000),
