@@ -27,4 +27,3 @@ jobs:
           secure: EEiWELzkju1qEkevyHy3z1u6c/Yq33OkJa/zlO2f3blhMNjK66v7T/wzqZEKIbOl+8R+sdqTcSdoRv1x+/aP5azTNnsc16odnq4XowqAtWfuSZ31mbhzYgaL+a5EhYJd7NI5ctTLM9bMSBmqnZRLtakubAGuNHFwgQjsBrr071FnMw5/k4wAU1gIo6NNOmN1ISETStN+V7Dy5wW2azpHJCfFswj9dfuXzgZ43X67Uywc7+kD5/NYHDHmwOlgbayo7gR7GXWfOTiersAaZtlnc1EvBPfc4g42j6+Lo/BP9Jf168EWnze3iaIji6wgbjJoqsr8RukV7bTeGxRZla061AbOIySWccwRSAuSRp2nN4MnZpEqWzP5nicRrxS3EVA7SmgZxxcCl4WMSa7ebfrjKtASwKXm1LpMyjBVRrY6rxnwjF663Y23C2lkSCmdqyTh02yk45eSki/wmOxHdrJrvh2FG+hLPQyBWEGs1gu60oF25j9M9wYQKFN2s1fk5r9Ym8oefxnkFMHzILnVWcFF04sTgsDx+CCER1aMQkT5qdHYr1WGyL7KqABD6Xn3Y4qWKdSogs3OsDtzz2d+K2484MIcFMV+GuzO4byKUV6+GQ7z6sqRJsWrcXnQn9Am5epjyPdukntLG+6oY5l/TXE1wSYSq7TxgC2K29PzvCP3Bhg=
         on:
           tags: true
-          branch: master
