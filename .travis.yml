@@ -21,6 +21,6 @@ jobs:
         provider: npm
         skip_cleanup: true
         email: libero-npm@elifesciences.org
-        api_key: $TEST
+        api_key: $NPM_TOKEN
         on:
           tags: true
