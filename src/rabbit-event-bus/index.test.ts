@@ -24,7 +24,7 @@ describe('AMQP Connection Manager', () => {
     describe('behaviour in a good connection state', () => {
         it('forwards messages to a connector', async () => {
             const publishMock = jest.fn(async () => true);
-            (AMQPConnector as jest.Mock).mockImplementation(([send]: Channel<StateChange>) => {
+            (AMQPConnector as jest.Mock).mockImplementation((_, [send]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -49,7 +49,7 @@ describe('AMQP Connection Manager', () => {
         it("passes on subscribes to the connector immediately, while it's ready", async () => {
             const subscribeMock = jest.fn();
             const [readyNotify, readyWait] = channel<{}>();
-            (AMQPConnector as jest.Mock).mockImplementation(([send]: Channel<StateChange>) => {
+            (AMQPConnector as jest.Mock).mockImplementation((_, [send]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -77,7 +77,7 @@ describe('AMQP Connection Manager', () => {
             // This channel is used to simulate startup delay in the connector
             const [readyNotify, readyWait] = channel<{}>();
 
-            (AMQPConnector as jest.Mock).mockImplementation(([send]: Channel<StateChange>) => {
+            (AMQPConnector as jest.Mock).mockImplementation((_, [send]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -135,7 +135,7 @@ describe('AMQP Connection Manager', () => {
             // This channel is used to simulate startup delay in the connector
             const [readyNotify, readyWait] = channel<{}>();
 
-            (AMQPConnector as jest.Mock).mockImplementation(([send]: Channel<StateChange>) => {
+            (AMQPConnector as jest.Mock).mockImplementation((_, [send]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -180,7 +180,7 @@ describe('AMQP Connection Manager', () => {
 
             (AMQPConnector as jest.Mock).mockImplementation(
                 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-                ([send, _1]: Channel<StateChange>) => {
+                (_, [send, _1]: Channel<StateChange>) => {
                     send({
                         newState: 'NOT_CONNECTED',
                     });
@@ -234,7 +234,7 @@ describe('AMQP Connection Manager', () => {
         it('publish promises are resolved after a successful connection', async done => {
             const subscribeMock = jest.fn();
 
-            (AMQPConnector as jest.Mock).mockImplementation(([send]: Channel<StateChange>) => {
+            (AMQPConnector as jest.Mock).mockImplementation((_, [send]: Channel<StateChange>) => {
                 send({
                     newState: 'CONNECTED',
                 });
@@ -289,7 +289,7 @@ describe('AMQP Connection Manager', () => {
             let returnState: ConnectedState = 'NOT_CONNECTED';
             let returnPublish = false;
 
-            (AMQPConnector as jest.Mock).mockImplementation(([send]: Channel<StateChange>) => {
+            (AMQPConnector as jest.Mock).mockImplementation((_, [send]: Channel<StateChange>) => {
                 send({
                     newState: returnState,
                 });

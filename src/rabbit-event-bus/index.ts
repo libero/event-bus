@@ -65,10 +65,10 @@ export default class RabbitEventBus extends EventBus implements EventPublisher, 
     }
 
     public async connect(): Promise<void> {
-        this._connector = Some(new AMQPConnector(this.connection.channel, this.serviceName));
+        this._connector = Some(new AMQPConnector(this.url, this.connection.channel, this.serviceName));
 
         if (!this._connector.isEmpty()) {
-            await this._connector.get().setup(this.url, this.eventsToHandle, this.subscriptions);
+            await this._connector.get().setup(this.eventsToHandle, this.subscriptions);
         }
     }
 

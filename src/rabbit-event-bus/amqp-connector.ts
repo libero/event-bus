@@ -16,14 +16,14 @@ export default class AMQPConnector {
     private destroyed = false;
     private subscriptions: EventType[] = [];
 
-    public constructor([sender]: Channel<StateChange>, serviceName: string) {
+    public constructor(private readonly url: string, [sender]: Channel<StateChange>, serviceName: string) {
         this.externalConnector = { send: sender };
         this.serviceName = serviceName;
     }
 
-    public async setup(url: string, eventDefs: string[], subscriptions: Array<Subscription>): Promise<void> {
+    public async setup(eventDefs: string[], subscriptions: Array<Subscription>): Promise<void> {
         // Set up the connections to the AMQP server
-        return this.connect(url)
+        return this.connect(this.url)
             .then(async connection => {
                 this.connection = connection;
                 await this.setupExchanges(eventDefs, subscriptions);
