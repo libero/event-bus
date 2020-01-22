@@ -1,6 +1,7 @@
 language: node_js
 stages:
   - test
+  - build
   - deploy
 jobs:
   include:
@@ -13,8 +14,6 @@ jobs:
         - yarn test
 
     - stage: deploy
-      if:
-        tag IS present
       name: Deploy
       script: yarn build
       node_js:
