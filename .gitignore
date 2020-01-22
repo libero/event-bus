@@ -69,5 +69,3 @@ docker-compose.override.yml
 *.tmp.ts
 data/
 dist/
-
-.npmrc
