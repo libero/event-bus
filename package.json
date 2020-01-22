@@ -18,8 +18,8 @@
   },
   "husky": {
     "hooks": {
-      "pre-push": "yarn test",
-      "pre-commit": "yarn lint"
+      "pre-commit": "yarn lint",
+      "pre-push": "yarn test"
     }
   },
   "author": "libero-npm@elifesciences.org",
