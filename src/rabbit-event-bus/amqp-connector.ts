@@ -16,21 +16,17 @@ export default class AMQPConnector {
     private destroyed = false;
     private subscriptions: EventType[] = [];
 
-    public constructor(
-        url: string,
-        [sender]: Channel<StateChange>,
-        eventDefs: string[],
-        subscriptions: Array<Subscription>,
-        serviceName: string,
-    ) {
+    public constructor(private readonly url: string, [sender]: Channel<StateChange>, serviceName: string) {
         this.externalConnector = { send: sender };
         this.serviceName = serviceName;
+    }
 
+    public async setup(eventDefs: string[], subscriptions: Array<Subscription>): Promise<void> {
         // Set up the connections to the AMQP server
-        this.connect(url)
+        return this.connect(this.url)
             .then(async connection => {
                 this.connection = connection;
-                this.setupExchanges(eventDefs, subscriptions);
+                await this.setupExchanges(eventDefs, subscriptions);
             })
             .catch(() => {
                 // notify the manager object that the connection has failed
@@ -64,7 +60,6 @@ export default class AMQPConnector {
                     const exName = EventUtils.makeEventExchangeName(eventType);
 
                     await rabbitChannel.bindQueue(qName, exName, '');
-                    logger.trace('subscribe');
                     this.subscriptions.push(eventType);
 
                     await rabbitChannel.consume(qName, async (msg: Message) => {
@@ -75,9 +70,16 @@ export default class AMQPConnector {
                     logger.fatal(`Can't create subscriber queues for: ${this.serviceName} using event: ${eventType}`);
                 });
         } else {
+            const retryIn = 1000;
+            const hostname = this.url.indexOf('@') > -1 ? this.url.split('@')[1] : this.url;
+            logger.warn(`No connection, can't subscribe to ${hostname}. Trying again in ${retryIn} milliseconds`);
             // Do we want to handle reconnects &/or retries here?
-            setTimeout(() => this.subscribe(eventType, handler), 1000);
-            logger.warn("No connection, can't subscribe, trying again soon!");
+            return new Promise(resolve =>
+                setTimeout(async () => {
+                    await this.subscribe(eventType, handler);
+                    resolve();
+                }, retryIn),
+            );
         }
     }
 
