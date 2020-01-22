@@ -5,7 +5,7 @@ import { StateChange } from './types';
 import { channel } from 'rs-channel-node';
 import { InfraLogger as logger } from '../logger';
 import { EventUtils } from './event-utils';
-import { Event } from 'index';
+import { Event } from '../event-bus/index';
 
 jest.mock('amqplib');
 jest.mock('../logger');
