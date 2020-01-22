@@ -71,7 +71,8 @@ export default class AMQPConnector {
                 });
         } else {
             const retryIn = 1000;
-            logger.warn(`No connection, can't subscribe. Trying again in ${retryIn} milliseconds`);
+            const hostname = this.url.indexOf('@') > -1 ? this.url.split('@')[1] : this.url;
+            logger.warn(`No connection, can't subscribe to ${hostname}. Trying again in ${retryIn} milliseconds`);
             // Do we want to handle reconnects &/or retries here?
             return new Promise(resolve =>
                 setTimeout(async () => {
