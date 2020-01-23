@@ -93,10 +93,7 @@ export default class RabbitEventBus extends EventBus implements EventPublisher, 
     }
 
     public async subscribe(eventType: string, handler: (event: Event) => Promise<boolean>): Promise<number> {
-        // TODO: this should be fixed as part of refactor/reshape... add async/await for now
-        this.connector.map(async connector => {
-            await connector.subscribe(eventType, handler);
-        });
+        await this.connector.get().subscribe(eventType, handler);
 
         // Add the subscription to the next connector's list of subscriptions
         return this.subscriptions.push({
