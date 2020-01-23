@@ -63,7 +63,7 @@ export default class AMQPConnector {
                     this.subscriptions.push(eventType);
 
                     await rabbitChannel.consume(qName, async (msg: Message) => {
-                        return this.decoratedHandler(rabbitChannel, handler, msg);
+                        return await this.decoratedHandler(rabbitChannel, handler, msg);
                     });
                 })
                 .catch(() => {
@@ -122,11 +122,11 @@ export default class AMQPConnector {
         }
     }
 
-    private decoratedHandler(
+    private async decoratedHandler(
         rabbitChannel: amqplib.Channel,
         handler: (ev: Event) => Promise<boolean>,
         msg: Message,
-    ): void {
+    ): Promise<void> {
         try {
             const message: EventBusMessage<Event> = JSON.parse(msg.content.toString());
 
