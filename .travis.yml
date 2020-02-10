@@ -7,7 +7,7 @@ jobs:
     - stage: test
       name: Test
       node_js:
-        - 10.16.3
+        - 12.14.1
       script:
         - yarn lint
         - yarn test
@@ -16,7 +16,7 @@ jobs:
       name: Deploy
       script: yarn build
       node_js:
-        - 10.16.3
+        - 12.14.1
       deploy:
         provider: npm
         skip_cleanup: true
