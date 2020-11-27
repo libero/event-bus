@@ -333,7 +333,7 @@ describe('AMQP Connection Manager', () => {
                 })
                 .then(then);
 
-            const checkNothingPublished = (): Promise<NodeJS.Timeout> => {
+            const checkNothingPublished = (): Promise<NodeJS.Timeout | void> => {
                 return new Promise(resolve =>
                     setTimeout(() => {
                         expect(then).toHaveBeenCalledTimes(0);
